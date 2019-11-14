@@ -1,0 +1,4 @@
+# Needed packages/versions
+numpy==1.16.4
+matplotlib==3.0.3
+tensorflow>=1.14.0
