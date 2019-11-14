@@ -95,19 +95,19 @@ X <- matrix(runif(N * d), N, d)
 mu0_real <- 0.012*X[, 4] - 0.75*X[, 6]*X[ ,8] - 0.9*X[, 5] - rowMeans(X)
 tau_real <- X[, 3] + 0.04*X[, 10] - 0.35*log(X[, 4]) 
 prob_of_T <- 0.5
-T <- rbinom(N, 1, prob_of_T)
+T_obs <- rbinom(N, 1, prob_of_T)
 normal_errors <- rnorm(N)
-Y <- mu0_real + tau_real*T + normal_errors
+Y <- mu0_real + tau_real*T_obs + normal_errors
 
 split = gensvm.train.test.split(X, train.size = 0.8, shuffle = TRUE,
                                 random.state = 42, return.idx = TRUE)
 # Splitting data
 X_train = X[split$idx.train,]
 Y_train = Y[split$idx.train]
-T_train = T[split$idx.train]
+T_train = T_obs[split$idx.train]
 X_valid = X[split$idx.test,]
 Y_valid = Y[split$idx.test]
-T_valid = T[split$idx.test]
+T_valid = T_obs[split$idx.test]
 
 # Converting arrays into ndarrays which are recognized by Python
 X_train = np$array(X_train)
@@ -117,8 +117,15 @@ X_valid = np$array( X_valid)
 T_valid = np$array(T_valid)
 Y_valid = np$array(Y_valid)
 X = np$array(X)
-T = np$array(T)
+T_obs = np$array(T_obs)
 Y = np$array(Y)
+
+# Getting causal estimates 
+coeffs = causalNets$causal_net_estimate(
+    0L, 1L, 2L, list(X_train, T_train, Y_train), list(X_valid, T_valid, Y_valid),
+    list(X, T_obs, Y),  list(20L, 10L), dropout_rates=NULL, batch_size=NULL, alpha_l1=0.,
+    alpha_l2=0., optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30L,
+    max_nepochs=5000L, distribution='LinearRegression', estimate_ps=FALSE, plot_coeffs = TRUE)
 ```
 
 ### Explanation of the parameters of the main function causal_net_estmates()
