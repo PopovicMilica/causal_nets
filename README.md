@@ -1,4 +1,4 @@
-A feed-forward neural network based software for treatment effect and propensity score estimation (in case of observational data). It is supporting both regression and classification treatment variable case.
+A feed-forward neural network based software for treatment effect and propensity score estimation. It is supporting both regression and classification treatment variable case.
 
 ### Installation
 
@@ -46,7 +46,7 @@ Y = mu0_real + tau_real*T + normal_errors
 
 # Creating training and validation dataset
 X_train, X_valid, T_train, T_valid, Y_train, Y_valid = train_test_split(
-    X, T, Y, test_size = 0.3, random_state=88)
+    X, T, Y, test_size = 0.2, random_state=88)
 
 # Getting causal estimates 
 tau_pred, mu0_pred, prob_t_pred = causal_net_estimate(
@@ -56,57 +56,75 @@ tau_pred, mu0_pred, prob_t_pred = causal_net_estimate(
     max_epochs_without_change=30, max_nepochs=10000,
     distribution='LinearRegression', estimate_ps=False, plot_coeffs = True)
 
-# Plotting estimated coefficient vs real coefficients
-def plotting_treatment_coefficients(tau_pred, mu0_pred):
-    
-    # Plotting treatment effect coefficient distributions
-    plt.figure(figsize=(12, 10))
-    plt.clf()
+# Plotting estimated coefficient vs real coefficients    
+plt.figure(figsize=(10, 5))
+plt.clf()
 
-    plt.subplot(2, 2, 1)
-    plt.hist(tau_pred, alpha=0.6, label='tau_pred', normed=True)
-    plt.hist(tau_real, label='tau_real', histtype=u'step',
-             normed=True, linewidth=2.5)
-    plt.legend(loc='upper right')
-    plt.title('CATE(Conditional average treatment effect)')
-    plt.xlabel('tau', fontsize=14)
-    plt.ylabel('Density')
-    
-    plt.subplot(2, 2, 2)
-    plt.plot(tau_pred,tau_real,'k.',markersize = 4)
-    plt.plot(tau_real,tau_real,'r-',lw=1)
-    plt.xlabel('tau_trained_',fontsize = 14)
-    plt.ylabel('tau_real_',fontsize = 14)
-    plt.xlim(np.min(tau_real),np.max(tau_real))
-    plt.ylim(np.min(tau_real),np.max(tau_real))
-    plt.title('Tau coefficients comparison')
-    
-    plt.subplot(2, 2, 3)
-    plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_0$_pred', normed=True)
-    plt.hist(mu0_real,label=r'$\mu_0$_real', histtype=u'step',
-             normed=True, linewidth=2.5)
-    plt.legend(loc='upper right')
-    plt.title(r'$\mu_0(x)$')
-    plt.xlabel('mu0', fontsize=14)
-    plt.ylabel('Density')
-    
-    plt.subplot(2, 2, 4)
-    plt.plot(mu0_pred, mu0_real,'k.',markersize = 4)
-    plt.plot(mu0_real, mu0_real,'r-',lw=1)
-    plt.xlabel('mu0_pred',fontsize = 14)
-    plt.ylabel('mu0_real',fontsize = 14)
-    plt.xlim(np.min(mu0_real),np.max(mu0_real))
-    plt.ylim(np.min(mu0_real),np.max(mu0_real))
-    plt.title(r'$\mu_0(x)$ coefficients comparison')
-    plt.tight_layout()
-    plt.show()
-    
-plotting_treatment_coefficients(tau_pred, mu0_pred)
+plt.subplot(1, 2, 1)
+plt.hist(tau_pred, alpha=0.6, label='tau_pred', normed=True)
+plt.hist(tau_real, label='tau_real', histtype=u'step',
+         normed=True, linewidth=2.5)
+plt.legend(loc='upper right')
+plt.title('CATE(Conditional average treatment effect)')
+plt.xlabel('tau', fontsize=14)
+plt.ylabel('Density')
+
+plt.subplot(1, 2, 2)
+plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_0$_pred', normed=True)
+plt.hist(mu0_real,label=r'$\mu_0$_real', histtype=u'step',
+         normed=True, linewidth=2.5)
+plt.legend(loc='upper right')
+plt.title(r'$\mu_0(x)$')
+plt.xlabel('mu0', fontsize=14)
+plt.ylabel('Density')
+
+plt.tight_layout()
+plt.show()
 ```
+If we want to run the same example directly in R, we can do that by using the library reticulate as follows:  
+```R
+library(reticulate)
+library(gensvm)
+causalNets <- import("causal_nets")
+np <-import("numpy")
+set.seed(3)
+
+N <- 10000
+d <- 10
+X <- matrix(runif(N * d), N, d)
+mu0_real <- 0.012*X[, 4] - 0.75*X[, 6]*X[ ,8] - 0.9*X[, 5] - rowMeans(X)
+tau_real <- X[, 3] + 0.04*X[, 10] - 0.35*log(X[, 4]) 
+prob_of_T <- 0.5
+T <- rbinom(N, 1, prob_of_T)
+normal_errors <- rnorm(N)
+Y <- mu0_real + tau_real*T + normal_errors
+
+split = gensvm.train.test.split(X, train.size = 0.8, shuffle = TRUE,
+                                random.state = 42, return.idx = TRUE)
+# Splitting data
+X_train = X[split$idx.train,]
+Y_train = Y[split$idx.train]
+T_train = T[split$idx.train]
+X_valid = X[split$idx.test,]
+Y_valid = Y[split$idx.test]
+T_valid = T[split$idx.test]
+
+# Converting arrays into ndarrays which are recognized by Python
+X_train = np$array(X_train)
+T_train = np$array(T_train)
+Y_train = np$array(Y_train)
+X_valid = np$array( X_valid)
+T_valid = np$array(T_valid)
+Y_valid = np$array(Y_valid)
+X = np$array(X)
+T = np$array(T)
+Y = np$array(Y)
+```
+
 ### Explanation of the parameters of the main function causal_net_estmates()
 ```
 def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
-                        test_data,  hidden_layer_sizes, dropout_rates=None,
+                        estimation_data,  hidden_layer_sizes, dropout_rates=None,
                         batch_size=None, alpha_l1=0., alpha_l2=0.,
                         optimizer='Adam', learning_rate=0.0009,
                         max_epochs_without_change=30, max_nepochs=5000,
@@ -141,8 +159,9 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Data on which the validation of the Neural Network will be
         performed. It has to be composed in the same manner as the
         training data.
-    test_data: array like
-        A feature array on which we want to perform estimation.
+    estimation_data: list of arrays
+        Data on which we want to perform estimation. It has to be
+        composed in the same manner as the training and validation data.
     hidden_layer_sizes: list of ints
         `hidden_layer_sizes` is a list that defines a size and width of
         the neural network that estimates causal coefficients. Length of
@@ -189,7 +208,11 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         categorical, then use distribution='Sigmoid'. Otherwise, if the
         target variable is continuous then distribution='LinearRegression'.
         Default: 'LinearRegression'
-    estimate_ps:False, optional
+    estimate_ps: False, optional
+        Should the propensity scores be estimated or not. If the
+        treatment is randomized then this variable should be set to 
+        False. In not randomized treatment case, it should be set to 
+        True. Default value is False.
     hidden_layer_sizes_t=None:, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
@@ -241,9 +264,15 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     tau_pred: ndarray
         Estimated conditional average treatment effect.
     mu0_pred: ndarray
-        Estimated intercept.
+        Estimated target value given x in case of no treatment.
     prob_of_t_pred:: ndarray
         Estimated propensity scores
+    psi_0: ndarray
+        Doubly robust estimate of target value given x in case of
+        no treatment.
+    psi_1: ndarray
+        Doubly robust estimate of target value given x in case of
+        treatment.
 
 ### References
 
