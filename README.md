@@ -128,7 +128,7 @@ coeffs = causalNets$causal_net_estimate(
     max_nepochs=5000L, distribution='LinearRegression', estimate_ps=FALSE, plot_coeffs = TRUE)
 ```
 
-### Explanation of the parameters of the main function causal_net_estmates()
+### Explanation of the parameters of the main function causal_net_estimate()
 ```
 def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
                         estimation_data,  hidden_layer_sizes, dropout_rates=None,
@@ -220,7 +220,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         treatment is randomized then this variable should be set to 
         False. In not randomized treatment case, it should be set to 
         True. Default value is False.
-    hidden_layer_sizes_t=None:, optional
+    hidden_layer_sizes_t, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
         of the list defines the number of hidden layers. Entries of the
