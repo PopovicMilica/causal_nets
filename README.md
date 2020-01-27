@@ -1,8 +1,8 @@
-A feed-forward neural network based software for treatment effect and propensity score estimation. It is supporting both regression and classification treatment variable case.
+A feed-forward neural network based software for treatment effects and propensity score estimation. It can support both continuous target variable and binary one.
 
 ### Installation
 
-First, clone the software repository, then install the dependencies and finally the software itself, by typing the following commands.
+First, clone the software repository, then install the dependencies, and finally the software itself by typing the following commands:
 
 ```sh
 cd install/path
@@ -81,7 +81,7 @@ plt.ylabel('Density')
 plt.tight_layout()
 plt.show()
 ```
-If we want to run the same example directly in R, we can do that by using the library reticulate as follows:  
+To run the same example directly in R, we can do that by using the reticulate library as follows:  
 ```R
 library(reticulate)
 library(gensvm)
@@ -101,7 +101,7 @@ Y <- mu0_real + tau_real*T_obs + normal_errors
 
 split = gensvm.train.test.split(X, train.size = 0.8, shuffle = TRUE,
                                 random.state = 42, return.idx = TRUE)
-# Splitting data
+# Splitting the data
 X_train = X[split$idx.train,]
 Y_train = Y[split$idx.train]
 T_train = T_obs[split$idx.train]
@@ -146,15 +146,14 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     Parameters  
     ----------  
     ind_X: {0, 1, 2}  
-        Features array index in data list.  
+        Features array index in data list. See training_data below.
     ind_T: {0, 1, 2}  
         Treatment array index in data list.  
     ind_Y: {0, 1, 2}  
         Target array index in data list.
     training_data: list of arrays
         Data on which the training of the Neural Network will be
-        performed. It is comprised as a list of arrays, in the
-        following manner:
+        performed. It is a list of arrays, as follows:
         [X_train, T_train, Y_train] or [T_train, X_train, Y_train] or
         any other ordering of the three arrays, just be carful when you
         specify the above indices as the mapping to be correct. Also,
