@@ -8,8 +8,8 @@ First, clone the software repository, then install the dependencies, and finally
 cd install/path
 git clone https://github.com/PopovicMilica/causal_nets.git
 cd causal_nets
-pip install -r requirements.txt
-pip install .
+pip3 install -r requirements.txt
+pip3 install .
 cd ..
 ```
 Test installation by importing the package:
@@ -19,7 +19,7 @@ import causal_nets
 
 ### Example
 
-The below code is a short example showcasing the usage of causal_nets software.
+The below code is a short example showcasing the usage of causal_nets software. In order to try this example, additional Python packages need to be installed: pandas and sklearn. The simplest way to install them is by using pip.
 
 ```Python
 import numpy as np
@@ -49,12 +49,12 @@ X_train, X_valid, T_train, T_valid, Y_train, Y_valid = train_test_split(
     X, T, Y, test_size = 0.2, random_state=88)
 
 # Getting causal estimates 
-tau_pred, mu0_pred, prob_t_pred = causal_net_estimate(
-    0, 1, 2, [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], X,
-    [30, 20, 15, 10, 5], dropout_rates=None, batch_size=None, alpha_l1=0.,
-    alpha_l2=0., optimizer='Adam', learning_rate=0.0009,
+tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1 = causal_net_estimate(
+    0, 1, 2, [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], [X, T, Y],
+    [30, 20, 15, 10, 5], dropout_rates=None, batch_size=None, alpha=0.,
+    r_par=0., optimizer='Adam', learning_rate=0.0009,
     max_epochs_without_change=30, max_nepochs=10000,
-    distribution='LinearRegression', estimate_ps=False, plot_coeffs = True)
+    distribution='LinearRegression', estimate_ps=False, plot_coeffs=True)
 
 # Plotting estimated coefficient vs real coefficients    
 plt.figure(figsize=(10, 5))
@@ -153,7 +153,8 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Target array index in data list.
     training_data: list of arrays
         Data on which the training of the Neural Network will be
-        performed. It is a list of arrays, as follows:
+        performed. It is comprised as a list of arrays, in the
+        following manner:
         [X_train, T_train, Y_train] or [T_train, X_train, Y_train] or
         any other ordering of the three arrays, just be carful when you
         specify the above indices as the mapping to be correct. Also,
@@ -179,7 +180,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         If it's a list than the values of the list represent dropout
         rate for each layer of the neural network that estimates causal
         coefficients. Each entry of the list has to be between 0 and 1.
-        Also, list has to be of same length as the list
+        Also, list has to be of the same length as the list
         'hidden_layer_sizes'. If is set to None, than dropout is not
         applied. Default value is None.
     batch_size: int, optional
@@ -188,16 +189,18 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         than batch size is equal to length of the training dataset for
         training datasets smaller than 50000 rows and set to 1024 for
         larger datasets. Otherwise, it is equal to the value provided.
-    alpha_l1: float, optional
-        Lasso(L1) regularization factor for the neural network that
+    alpha: float, optional
+        Regularization strength parameter for the neural network that
         estimates causal coefficients. Default value is 0.
-    alpha_l2: float, optional
-        Ridge(L2) regularization factor for the neural network that
-        estimates causal coefficients. Default value is 0.
-    optimizer: str, optional
+    r_par: float, optional
+        Mixing ratio of Ridge and Lasso regression for the neural network that
+        estimates causal coefficients.
+        Has to be between 0 and 1. If r_par = 0, than this is equal to
+        having Lasso regression. If r_par = 1, than it is equal to
+        having Ridge regression. Default value is 0.
+    optimizer: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
-        causal coefficients. See page: https://keras.io/optimizers/ for
-        optimizers options. Default: 'Adam'.
+        causal coefficients. Default: 'Adam'.
     learning_rate: scalar, optional
         Learning rate for the neural network that estimates
         causal coefficients. Default value is 0.0009.
@@ -209,17 +212,17 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Maximum number of epochs for which neural network, that
         estimates causal coefficients, will be trained.
         Default value is 5000.
-    distribution: {'Sigmoid', 'LinearRegression'}, optional
+    distribution: {'binary', 'continuous'}, optional
         If the target variable for causal coefficients is a binary
-        categorical, then use distribution='Sigmoid'. Otherwise, if the
-        target variable is continuous then distribution='LinearRegression'.
-        Default: 'LinearRegression'
+        categorical, then use distribution='binary'. Otherwise, if the
+        target variable is continuous then distribution='continuous'.
+        Default: 'continuous'
     estimate_ps: False, optional
         Should the propensity scores be estimated or not. If the
-        treatment is randomized then this variable should be set to 
-        False. In not randomized treatment case, it should be set to 
+        treatment is randomized then this variable should be set to
+        False. In not randomized treatment case, it should be set to
         True. Default value is False.
-    hidden_layer_sizes_t, optional
+    hidden_layer_sizes_t: None, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
         of the list defines the number of hidden layers. Entries of the
@@ -241,16 +244,18 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         batch size is equal to the length of the training dataset for
         training datasets smaller than 50000 rows and set to 1024 for
         larger datasets. Otherwise, it is equal to the value provided.
-    alpha_l1_t: float, optional
-        Lasso(L1) regularization factor for the neural network that
+    alpha_t: float, optional
+        Regularization strength parameter for the neural network that
         estimates propensity scores. Default value is 0.
-    alpha_l2_t: float, optional
-        Ridge(L2) regularization factor for the neural network that
-        estimates propensity scores. Default value is 0.
-    optimizer_t: str, optional
+    r_par_t: float, optional
+        Mixing ratio of Ridge and Lasso regression for the neural network that
+        estimates propensity scores.
+        Has to be between 0 and 1. If r_par = 0, than this is equal to
+        having Lasso regression. If r_par = 1, than it is equal to
+        having Ridge regression. Default value is 0.
+    optimizer_t: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
-        propensity scores. See page: https://keras.io/optimizers/ for
-        optimizers options. Default: 'Adam'.
+        propensity scores. Default: 'Adam'.
     learning_rate_t: scalar, optional
         Learning rate for the neural network that estimates propensity
         scores. Default value is 0.0009.
