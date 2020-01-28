@@ -433,7 +433,7 @@ class PropensityScoreNet():
         elif self.optimizer == 'GradientDescent':
             opt = keras.optimizers.SGD(lr=self.learning_rate, momentum=0.0,
                                        decay=0.0, nesterov=False)
-       elif self.optimizer == 'RMSprop':
+        elif self.optimizer == 'RMSprop':
             opt = keras.optimizers.RMSprop(lr=self.learning_rate, rho=0.9,
                                            epsilon=None, decay=0.0)
         else:
