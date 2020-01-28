@@ -730,7 +730,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         treatment is randomized then this variable should be set to
         False. In not randomized treatment case, it should be set to
         True. Default value is False.
-    hidden_layer_sizes_t=None:, optional
+    hidden_layer_sizes_t: None, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
         of the list defines the number of hidden layers. Entries of the
@@ -771,7 +771,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Number of epochs with no improvement on the validation loss to
         wait before stopping the training for the neural network that
         estimates propensity scores. Default value is 30.
-    max_nepochs_t int, optional
+    max_nepochs_t: int, optional
         Maximum number of epochs for which neural network, that
         estimates propensity scores, will be trained.
         Default value is 5000.
