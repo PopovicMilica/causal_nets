@@ -6,7 +6,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
@@ -83,37 +82,39 @@ class CoeffNet():
         0 and 1. Has to be of length len(hidden_layer_sizes).
     batch_size: int
         Batch size.
-    alpha_l1: float
-        Lasso(L1) regularization factor.
-    alpha_l2: float
-        Ridge(L2) regularization factor.
-    optimizer: str
+    alpha: float
+        Regularization strength parameter.
+    r_par: float
+        Mixing ratio of Ridge and Lasso regression.
+        Has to be between 0 and 1. If r_par = 0, than this is equal to
+        having Lasso regression. If r_par = 1, than it is equal to
+        having Ridge regression.  
+    optimizer: {'Adam', 'GradientDescent', 'RMSprop'}
         Which optimizer to use.
-        See page: https://keras.io/optimizers/ for optimizers options.
     learning_rate: scalar
         Learning rate.
     max_epochs_without_change: int
         Number of epochs with no improvement on the validation loss to
         wait before stopping the training.
     max_nepochs: int
-        Maximum number of epochs for which neural network will
+        Maximum number of epochs for which the neural network will
         be trained.
-    distribution: {'Sigmoid', 'LinearRegression'}
+    distribution: {'binary', 'continuous'}
         If the target variable is a binary categorical, then use
-        distribution='Sigmoid'. Otherwise, if the target variable is
-        continuous then distribution='LinearRegression'.
+        distribution='binary'. Otherwise, if the target variable is
+        continuous then distribution='continuous'.
     nparameters: int
         Number of units in the output layer.
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates,
-                 batch_size, alpha_l1, alpha_l2, optimizer, learning_rate,
+                 batch_size, alpha, r_par, optimizer, learning_rate,
                  max_epochs_without_change, max_nepochs, distribution):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
         self.batch_size = batch_size
-        self.alpha_l1 = alpha_l1
-        self.alpha_l2 = alpha_l2
+        self.alpha = alpha
+        self.r_par = r_par
         self.optimizer = optimizer
         self.learning_rate = learning_rate
         self.max_epochs_without_change = max_epochs_without_change
@@ -128,7 +129,7 @@ class CoeffNet():
 
         In the case of regression, this layer will return the value of:
         tau * T + mu0
-        and for sigmoid:
+        and for binary target variable case:
         sigmoid(tau * T + mu0)
         where `tau` is conditional average treatment effect for each
         individual, `T` is the treatment for each individual and
@@ -148,9 +149,9 @@ class CoeffNet():
 
         V_values = tf.multiply(t, tau) + mu0
 
-        if self.distribution == 'Sigmoid':
+        if self.distribution == 'binary':
             return tf.sigmoid(V_values)
-        elif self.distribution == 'LinearRegression':
+        elif self.distribution == 'continuous':
             return V_values
 
     def _last_layer_output_shape(self, input_shape):
@@ -200,11 +201,8 @@ class CoeffNet():
             else:
                 output = Dropout(self.dropout_rates[i])(output)
 
-            if (self.alpha_l1 is None and self.alpha_l2 is None):
-                reg = None
-            else:
-                reg = keras.regularizers.l1_l2(l1=self.alpha_l1,
-                                               l2=self.alpha_l2)
+            reg = keras.regularizers.l1_l2(
+                l1=self.alpha*self.r_par, l2=self.alpha*(1-self.r_par))
 
             output = Dense(self.hidden_layer_sizes[i], activation='relu',
                            use_bias=True, kernel_initializer='glorot_uniform',
@@ -232,14 +230,16 @@ class CoeffNet():
         elif self.optimizer == 'GradientDescent':
             opt = keras.optimizers.SGD(lr=self.learning_rate, momentum=0.0,
                                        decay=0.0, nesterov=False)
-        else:
+        elif self.optimizer == 'RMSprop':
             opt = keras.optimizers.RMSprop(lr=self.learning_rate, rho=0.9,
                                            epsilon=None, decay=0.0)
+        else:
+            raise ValueError('Optimizer not recognized!')
 
-        if self.distribution == 'Sigmoid':
+        if self.distribution == 'binary':
             model.compile(optimizer=opt,
                           loss='binary_crossentropy')
-        elif self.distribution == 'LinearRegression':
+        elif self.distribution == 'continuous':
             model.compile(optimizer=opt,
                           loss='mean_squared_error')
         else:
@@ -372,14 +372,14 @@ class PropensityScoreNet():
     Same as in class CoeffNet.
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates, batch_size,
-                 alpha_l1, alpha_l2, optimizer, learning_rate,
+                 alpha, r_par, optimizer, learning_rate,
                  max_epochs_without_change, max_nepochs):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
         self.batch_size = batch_size
-        self.alpha_l1 = alpha_l1
-        self.alpha_l2 = alpha_l2
+        self.alpha = alpha
+        self.r_par = r_par
         self.optimizer = optimizer
         self.learning_rate = learning_rate
         self.max_epochs_without_change = max_epochs_without_change
@@ -410,11 +410,8 @@ class PropensityScoreNet():
             else:
                 output = Dropout(self.dropout_rates[i])(output)
 
-            if (self.alpha_l1 is None and self.alpha_l2 is None):
-                reg = None
-            else:
-                reg = keras.regularizers.l1_l2(l1=self.alpha_l1,
-                                               l2=self.alpha_l2)
+            reg = keras.regularizers.l1_l2(
+                l1=self.alpha*self.r_par, l2=self.alpha*(1-self.r_par))
 
             output = Dense(self.hidden_layer_sizes[i], activation='relu',
                            use_bias=True, kernel_initializer='glorot_uniform',
@@ -436,9 +433,11 @@ class PropensityScoreNet():
         elif self.optimizer == 'GradientDescent':
             opt = keras.optimizers.SGD(lr=self.learning_rate, momentum=0.0,
                                        decay=0.0, nesterov=False)
-        else:
+       elif self.optimizer == 'RMSprop':
             opt = keras.optimizers.RMSprop(lr=self.learning_rate, rho=0.9,
                                            epsilon=None, decay=0.0)
+        else:
+            raise ValueError('Optimizer not recognized!')
 
         model.compile(optimizer=opt, loss='binary_crossentropy')
         return model
@@ -542,7 +541,8 @@ class PropensityScoreNet():
 def determine_batch_size(batch_size, training_data):
     '''
     Assign batch size value if the batch size is not provided, or if
-    it is check if it is valid one and return the same value if it is.
+    it is provided, check if it is valid one and return the given batch
+    size if it is.
 
     If batch_size is None, than batch size is equal to length of
     training dataset for training datasets smaller than 50000 rows.
@@ -570,7 +570,7 @@ def determine_batch_size(batch_size, training_data):
         assertion_error = ('Batch size value should be less then the' +
                            ' length of the training data!')
         assert batch_size < len(training_data[0]), assertion_error
-                
+
     return batch_size
 
 
@@ -622,8 +622,8 @@ def _doubly_robust_estimator(mu0_pred, tau_pred, Y, T,
             Doubly robust estimate of target value given x in case of
             treatment.
     '''
-    T = np.array(T).reshape(-1,1)
-    Y = np.array(Y).reshape(-1,1)
+    T = np.array(T).reshape(-1, 1)
+    Y = np.array(Y).reshape(-1, 1)
 
     first_part = (1-T) * (Y-mu0_pred)
     second_part = T * (Y-mu0_pred-tau_pred)
@@ -641,12 +641,12 @@ def _doubly_robust_estimator(mu0_pred, tau_pred, Y, T,
 
 def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
                         estimation_data,  hidden_layer_sizes, dropout_rates=None,
-                        batch_size=None, alpha_l1=0., alpha_l2=0.,
+                        batch_size=None, alpha=0., r_par=0.,
                         optimizer='Adam', learning_rate=0.0009,
                         max_epochs_without_change=30, max_nepochs=5000,
-                        distribution='LinearRegression', estimate_ps=False,
+                        distribution='continuous', estimate_ps=False,
                         hidden_layer_sizes_t=None, dropout_rates_t=None,
-                        batch_size_t=None, alpha_l1_t=0., alpha_l2_t=0.,
+                        batch_size_t=None, alpha_t=0., r_par_t=0.,
                         optimizer_t='Adam', learning_rate_t=0.0009,
                         max_epochs_without_change_t=30, max_nepochs_t=5000,
                         plot_coeffs=True):
@@ -688,7 +688,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         If it's a list than the values of the list represent dropout
         rate for each layer of the neural network that estimates causal
         coefficients. Each entry of the list has to be between 0 and 1.
-        Also, list has to be of same length as the list
+        Also, list has to be of the same length as the list
         'hidden_layer_sizes'. If is set to None, than dropout is not
         applied. Default value is None.
     batch_size: int, optional
@@ -697,16 +697,18 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         than batch size is equal to length of the training dataset for
         training datasets smaller than 50000 rows and set to 1024 for
         larger datasets. Otherwise, it is equal to the value provided.
-    alpha_l1: float, optional
-        Lasso(L1) regularization factor for the neural network that
+    alpha: float, optional
+        Regularization strength parameter for the neural network that
         estimates causal coefficients. Default value is 0.
-    alpha_l2: float, optional
-        Ridge(L2) regularization factor for the neural network that
-        estimates causal coefficients. Default value is 0.
-    optimizer: str, optional
+    r_par: float, optional
+        Mixing ratio of Ridge and Lasso regression for the neural network that
+        estimates causal coefficients.
+        Has to be between 0 and 1. If r_par = 0, than this is equal to
+        having Lasso regression. If r_par = 1, than it is equal to
+        having Ridge regression. Default value is 0.
+    optimizer: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
-        causal coefficients. See page: https://keras.io/optimizers/ for
-        optimizers options. Default: 'Adam'.
+        causal coefficients. Default: 'Adam'.
     learning_rate: scalar, optional
         Learning rate for the neural network that estimates
         causal coefficients. Default value is 0.0009.
@@ -718,15 +720,15 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Maximum number of epochs for which neural network, that
         estimates causal coefficients, will be trained.
         Default value is 5000.
-    distribution: {'Sigmoid', 'LinearRegression'}, optional
+    distribution: {'binary', 'continuous'}, optional
         If the target variable for causal coefficients is a binary
-        categorical, then use distribution='Sigmoid'. Otherwise, if the
-        target variable is continuous then distribution='LinearRegression'.
-        Default: 'LinearRegression'
+        categorical, then use distribution='binary'. Otherwise, if the
+        target variable is continuous then distribution='continuous'.
+        Default: 'continuous'
     estimate_ps: False, optional
         Should the propensity scores be estimated or not. If the
-        treatment is randomized then this variable should be set to 
-        False. In not randomized treatment case, it should be set to 
+        treatment is randomized then this variable should be set to
+        False. In not randomized treatment case, it should be set to
         True. Default value is False.
     hidden_layer_sizes_t=None:, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
@@ -750,16 +752,18 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         batch size is equal to the length of the training dataset for
         training datasets smaller than 50000 rows and set to 1024 for
         larger datasets. Otherwise, it is equal to the value provided.
-    alpha_l1_t: float, optional
-        Lasso(L1) regularization factor for the neural network that
+    alpha_t: float, optional
+        Regularization strength parameter for the neural network that
         estimates propensity scores. Default value is 0.
-    alpha_l2_t: float, optional
-        Ridge(L2) regularization factor for the neural network that
-        estimates propensity scores. Default value is 0.
-    optimizer_t: str, optional
+    r_par_t: float, optional
+        Mixing ratio of Ridge and Lasso regression for the neural network that
+        estimates propensity scores.
+        Has to be between 0 and 1. If r_par = 0, than this is equal to
+        having Lasso regression. If r_par = 1, than it is equal to
+        having Ridge regression. Default value is 0.
+    optimizer_t: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
-        propensity scores. See page: https://keras.io/optimizers/ for
-        optimizers options. Default: 'Adam'.
+        propensity scores. Default: 'Adam'.
     learning_rate_t: scalar, optional
         Learning rate for the neural network that estimates propensity
         scores. Default value is 0.0009.
@@ -794,7 +798,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         dropout_rates = determine_dropout_rates(hidden_layer_sizes)
 
     coeff_net = CoeffNet(hidden_layer_sizes, dropout_rates, batch_size,
-                         alpha_l1, alpha_l2, optimizer, learning_rate,
+                         alpha, r_par, optimizer, learning_rate,
                          max_epochs_without_change, max_nepochs, distribution)
 
     model_coeff_net = coeff_net.training_NN(
@@ -815,8 +819,8 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
                              'the second neural network as well')
 
         ps_net = PropensityScoreNet(
-            hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_l1_t,
-            alpha_l2_t, optimizer_t, learning_rate_t,
+            hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t,
+            r_par_t, optimizer_t, learning_rate_t,
             max_epochs_without_change_t, max_nepochs_t)
 
         model_ps_net = ps_net.training_NN(
@@ -827,7 +831,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
             model_ps_net, estimation_data[ind_X], plot_coeffs=plot_coeffs)
     else:
         prob_t_pred = np.mean(estimation_data[ind_T])
-    
+
     psi_0, psi_1 = _doubly_robust_estimator(
         mu0_pred, tau_pred, estimation_data[ind_Y], estimation_data[ind_T],
         prob_t_pred, estimate_ps)
