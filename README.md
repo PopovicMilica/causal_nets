@@ -54,7 +54,7 @@ tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1 = causal_net_estimate(
     [30, 20, 15, 10, 5], dropout_rates=None, batch_size=None, alpha=0.,
     r_par=0., optimizer='Adam', learning_rate=0.0009,
     max_epochs_without_change=30, max_nepochs=10000,
-    distribution='LinearRegression', estimate_ps=False, plot_coeffs=True)
+    distribution='continuous', estimate_ps=False, plot_coeffs=True)
 
 # Plotting estimated coefficient vs real coefficients    
 plt.figure(figsize=(10, 5))
@@ -123,9 +123,9 @@ Y = np$array(Y)
 # Getting causal estimates 
 coeffs = causalNets$causal_net_estimate(
     0L, 1L, 2L, list(X_train, T_train, Y_train), list(X_valid, T_valid, Y_valid),
-    list(X, T_obs, Y),  list(20L, 10L), dropout_rates=NULL, batch_size=NULL, alpha_l1=0.,
-    alpha_l2=0., optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30L,
-    max_nepochs=5000L, distribution='continuous', estimate_ps=FALSE, plot_coeffs = TRUE)
+    list(X, T_obs, Y),  list(30L, 20L, 15L, 10L, 5L), dropout_rates=NULL, batch_size=NULL, alpha=0.,
+    r_par=0., optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30L,
+    max_nepochs=5000L, distribution='continuous', estimate_ps=FALSE, plot_coeffs=TRUE)
 ```
 
 ### Explanation of the parameters of the main function causal_net_estimate()
