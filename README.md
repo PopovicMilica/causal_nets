@@ -81,7 +81,7 @@ plt.ylabel('Density')
 plt.tight_layout()
 plt.show()
 ```
-To run the same example directly in R, we can do that by using the reticulate library as follows:  
+To run the same example directly in R, additional R packages need to be installed: reticulate and gensvm. Then run the code below: 
 ```R
 library(reticulate)
 library(gensvm)
