@@ -629,8 +629,8 @@ def _doubly_robust_estimator(mu0_pred, tau_pred, Y, T,
     second_part = T * (Y-mu0_pred-tau_pred)
 
     if estimate_ps:
-        prob_t_pred[prob_t_pred < 0.001] = 0.001
-        prob_t_pred[prob_t_pred > 0.999] = 0.999
+        prob_t_pred[prob_t_pred < 0.0001] = 0.0001
+        prob_t_pred[prob_t_pred > 0.9999] = 0.9999
         psi_0 = (first_part/(1-prob_t_pred)) + mu0_pred
         psi_1 = (second_part/prob_t_pred) + mu0_pred + tau_pred
     else:
@@ -812,11 +812,12 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     if estimate_ps:
         if batch_size_t is None:
             batch_size_t = determine_batch_size(batch_size_t, training_data)
-        if dropout_rates_t is None:
-            dropout_rates_t = determine_dropout_rates(hidden_layer_sizes_t)
         if hidden_layer_sizes_t is None:
             raise ValueError('Hidden layer sizes needs to be specified for' +
                              'the second neural network as well')
+        if dropout_rates_t is None:
+            dropout_rates_t = determine_dropout_rates(hidden_layer_sizes_t)
+
 
         ps_net = PropensityScoreNet(
             hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t,
