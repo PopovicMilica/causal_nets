@@ -793,8 +793,8 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Doubly robust estimate of target value given x in case of
         treatment.
     '''
-     if estimate_ps:
-         if hidden_layer_sizes_t is None:
+    if estimate_ps:
+        if hidden_layer_sizes_t is None:
             raise ValueError('Hidden layer sizes needs to be specified for' +
                              ' the second neural network as well')
 
