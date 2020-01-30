@@ -99,16 +99,12 @@ class CoeffNet():
     max_nepochs: int
         Maximum number of epochs for which the neural network will
         be trained.
-    distribution: {'binary', 'continuous'}
-        If the target variable is a binary categorical, then use
-        distribution='binary'. Otherwise, if the target variable is
-        continuous then distribution='continuous'.
     nparameters: int
         Number of units in the output layer.
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates,
                  batch_size, alpha, r_par, optimizer, learning_rate,
-                 max_epochs_without_change, max_nepochs, distribution):
+                 max_epochs_without_change, max_nepochs):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
@@ -119,7 +115,6 @@ class CoeffNet():
         self.learning_rate = learning_rate
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
-        self.distribution = distribution
         self.nparameters = 2
 
     def _last_layer(self, combined_input):
@@ -129,8 +124,6 @@ class CoeffNet():
 
         In the case of regression, this layer will return the value of:
         tau * T + mu0
-        and for binary target variable case:
-        sigmoid(tau * T + mu0)
         where `tau` is conditional average treatment effect for each
         individual, `T` is the treatment for each individual and
         `mu0` is estimated target value given x in case of no treatment
@@ -148,11 +141,7 @@ class CoeffNet():
         t = combined_input[:, self.nparameters:]
 
         V_values = tf.multiply(t, tau) + mu0
-
-        if self.distribution == 'binary':
-            return tf.sigmoid(V_values)
-        elif self.distribution == 'continuous':
-            return V_values
+        return V_values
 
     def _last_layer_output_shape(self, input_shape):
         '''
@@ -236,14 +225,7 @@ class CoeffNet():
         else:
             raise ValueError('Optimizer not recognized!')
 
-        if self.distribution == 'binary':
-            model.compile(optimizer=opt,
-                          loss='binary_crossentropy')
-        elif self.distribution == 'continuous':
-            model.compile(optimizer=opt,
-                          loss='mean_squared_error')
-        else:
-            raise ValueError('Distribution not recognized!')
+        model.compile(optimizer=opt, loss='mean_squared_error')
         return model, betas_model
 
     def training_NN(self, training_data, validation_data):
@@ -573,10 +555,9 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
                         batch_size=None, alpha=0., r_par=0.,
                         optimizer='Adam', learning_rate=0.0009,
                         max_epochs_without_change=30, max_nepochs=5000,
-                        distribution='continuous', estimate_ps=False,
-                        hidden_layer_sizes_t=None, dropout_rates_t=None,
-                        batch_size_t=None, alpha_t=0., r_par_t=0.,
-                        optimizer_t='Adam', learning_rate_t=0.0009,
+                        estimate_ps=False, hidden_layer_sizes_t=None,
+                        dropout_rates_t=None, batch_size_t=None, alpha_t=0.,
+                        r_par_t=0., optimizer_t='Adam', learning_rate_t=0.0009,
                         max_epochs_without_change_t=30, max_nepochs_t=5000):
     '''
     Parameters
@@ -648,11 +629,6 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Maximum number of epochs for which neural network, that
         estimates causal coefficients, will be trained.
         Default value is 5000.
-    distribution: {'binary', 'continuous'}, optional
-        If the target variable for causal coefficients is a binary
-        categorical, then use distribution='binary'. Otherwise, if the
-        target variable is continuous then distribution='continuous'.
-        Default: 'continuous'
     estimate_ps: False, optional
         Should the propensity scores be estimated or not. If the
         treatment is randomized then this variable should be set to
@@ -733,7 +709,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
 
     coeff_net = CoeffNet(hidden_layer_sizes, dropout_rates, batch_size,
                          alpha, r_par, optimizer, learning_rate,
-                         max_epochs_without_change, max_nepochs, distribution)
+                         max_epochs_without_change, max_nepochs)
 
     model_coeff_net = coeff_net.training_NN(
         [training_data[ind_X], training_data[ind_T], training_data[ind_Y]],
