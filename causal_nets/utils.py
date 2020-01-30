@@ -793,6 +793,11 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Doubly robust estimate of target value given x in case of
         treatment.
     '''
+     if estimate_ps:
+         if hidden_layer_sizes_t is None:
+            raise ValueError('Hidden layer sizes needs to be specified for' +
+                             ' the second neural network as well')
+
     batch_size = determine_batch_size(batch_size, training_data)
     if dropout_rates is None:
         dropout_rates = determine_dropout_rates(hidden_layer_sizes)
@@ -812,12 +817,8 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     if estimate_ps:
         if batch_size_t is None:
             batch_size_t = determine_batch_size(batch_size_t, training_data)
-        if hidden_layer_sizes_t is None:
-            raise ValueError('Hidden layer sizes needs to be specified for' +
-                             'the second neural network as well')
         if dropout_rates_t is None:
             dropout_rates_t = determine_dropout_rates(hidden_layer_sizes_t)
-
 
         ps_net = PropensityScoreNet(
             hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t,
