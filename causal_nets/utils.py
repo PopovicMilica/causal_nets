@@ -88,7 +88,7 @@ class CoeffNet():
         Mixing ratio of Ridge and Lasso regression.
         Has to be between 0 and 1. If r_par = 0, than this is equal to
         having Lasso regression. If r_par = 1, than it is equal to
-        having Ridge regression.  
+        having Ridge regression.
     optimizer: {'Adam', 'GradientDescent', 'RMSprop'}
         Which optimizer to use.
     learning_rate: scalar
@@ -441,7 +441,7 @@ class PropensityScoreNet():
             Keras model which returns propensity scores.
         input_value: array like
             Features array
-        
+
         Returns
         -------
         prob_of_t_pred: ndarray
@@ -550,10 +550,10 @@ def _influence_functions(mu0_pred, tau_pred, Y, T,
     return psi_0, psi_1
 
 
-def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
-                        estimation_data,  hidden_layer_sizes, dropout_rates=None,
-                        batch_size=None, alpha=0., r_par=0.,
-                        optimizer='Adam', learning_rate=0.0009,
+def causal_net_estimate(training_data, validation_data,
+                        estimation_data,  hidden_layer_sizes,
+                        dropout_rates=None, batch_size=None, alpha=0.,
+                        r_par=0., optimizer='Adam', learning_rate=0.0009,
                         max_epochs_without_change=30, max_nepochs=5000,
                         estimate_ps=False, hidden_layer_sizes_t=None,
                         dropout_rates_t=None, batch_size_t=None, alpha_t=0.,
@@ -562,12 +562,6 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     '''
     Parameters
     ----------
-    ind_X: {0, 1, 2}
-        Features array index in data list.
-    ind_T: {0, 1, 2}
-        Treatment array index in data list.
-    ind_Y: {0, 1, 2}
-        Target array index in data list.
     training_data: list of arrays
         Data on which the training of the Neural Network will be
         performed. It is comprised as a list of arrays, in the
@@ -697,11 +691,11 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         if hidden_layer_sizes_t is None:
             raise ValueError('Hidden layer sizes needs to be specified for' +
                              ' the second neural network as well!')
-    
+
     assert_message = 'Treatment needs to be binary, expressed as 0-1 vector!'
-    assert list(np.unique(training_data[ind_T])) == [0, 1], assert_message
-    assert list(np.unique(validation_data[ind_T])) == [0, 1], assert_message
-    assert list(np.unique(estimation_data[ind_T])) == [0, 1], assert_message
+    assert list(np.unique(training_data[1])) == [0, 1], assert_message
+    assert list(np.unique(validation_data[1])) == [0, 1], assert_message
+    assert list(np.unique(estimation_data[1])) == [0, 1], assert_message
 
     batch_size = determine_batch_size(batch_size, training_data)
     if dropout_rates is None:
@@ -712,12 +706,10 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
                          max_epochs_without_change, max_nepochs)
 
     model_coeff_net = coeff_net.training_NN(
-        [training_data[ind_X], training_data[ind_T], training_data[ind_Y]],
-        [validation_data[ind_X], validation_data[ind_T],
-         validation_data[ind_Y]])
+        training_data, validation_data)
 
     tau_pred, mu0_pred = coeff_net.retrieve_coeffs(
-        model_coeff_net, estimation_data[ind_X])
+        model_coeff_net, estimation_data[0])
 
     if estimate_ps:
         if batch_size_t is None:
@@ -731,17 +723,16 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
             max_epochs_without_change_t, max_nepochs_t)
 
         model_ps_net = ps_net.training_NN(
-            [training_data[ind_X], training_data[ind_T]],
-            [validation_data[ind_X], validation_data[ind_T]])
+            training_data[0:2], validation_data[0:2])
 
         prob_t_pred = ps_net.retrieve_propensity_scores(
-            model_ps_net, estimation_data[ind_X])
+            model_ps_net, estimation_data[0])
     else:
-        prob_t_pred = np.mean(estimation_data[ind_T])
+        prob_t_pred = np.mean(estimation_data[1])
 
     psi_0, psi_1 = _influence_functions(mu0_pred, tau_pred,
-                                        estimation_data[ind_Y],
-                                        estimation_data[ind_T],
+                                        estimation_data[2],
+                                        estimation_data[1],
                                         prob_t_pred, estimate_ps)
 
     return tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1
