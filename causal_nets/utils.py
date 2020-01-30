@@ -296,7 +296,7 @@ class CoeffNet():
         _plotting_loss_functions(history)
         return betas_model
 
-    def retrieve_coeffs(self, betas_model, input_value, plot_coeffs):
+    def retrieve_coeffs(self, betas_model, input_value):
         '''
         After training is completed retrieve coefficient values.
 
@@ -307,8 +307,6 @@ class CoeffNet():
             network, which as an output has causal coefficients.
         input_value: array like
             Features array
-        plot_coeffs: bool
-            Should predicted coefficients be plotted or not.
 
         Returns
         -------
@@ -320,47 +318,7 @@ class CoeffNet():
         betas_pred = betas_model.predict(input_value)
         tau_pred = betas_pred[:, :1]
         mu0_pred = betas_pred[:, 1:2]
-        if plot_coeffs:
-            self._plot_all_coeffs(tau_pred, mu0_pred)
         return tau_pred, mu0_pred
-
-    def _plot_coeff_distribution(self, coeff_pred, name):
-        '''
-        Plot the distribution of the given coefficient.
-
-        Parameters
-        ----------
-        coeff_pred: ndarray
-            Coefficient array which distribution
-            we want to plot.
-        '''
-        plt.hist(coeff_pred, alpha=0.7, label=name+'_pred')
-        plt.ylabel('Density')
-        plt.legend(loc='upper right')
-        plt.title(name)
-
-    def _plot_all_coeffs(self, tau_pred, mu0_pred):
-        '''
-        Plotting predicted treatment effect coefficients'
-        distributions.
-
-        Parameters
-        ----------
-        tau_pred: ndarray
-            Estimated conditional average treatment effect.
-        mu0_pred: ndarray
-            Estimated target value given x in case of no treatment.
-        '''
-        plt.figure(figsize=(8, 4))
-        plt.clf()
-
-        plt.subplot(1, 2, 1)
-        self._plot_coeff_distribution(tau_pred, 'tau')
-
-        plt.subplot(1, 2, 2)
-        self._plot_coeff_distribution(mu0_pred, r'$\mu_0$')
-
-        plt.tight_layout()
 
 
 class PropensityScoreNet():
@@ -490,8 +448,7 @@ class PropensityScoreNet():
         _plotting_loss_functions(history)
         return model
 
-    def retrieve_propensity_scores(self, model, input_value,
-                                   plot_coeffs):
+    def retrieve_propensity_scores(self, model, input_value):
         '''
         After training is completed retrieve propensity scores for
         a given data.
@@ -502,40 +459,14 @@ class PropensityScoreNet():
             Keras model which returns propensity scores.
         input_value: array like
             Features array
-        plot_coeffs: bool
-            Should histogram of predicted propensity scores
-            be plotted or not.
-
+        
         Returns
         -------
         prob_of_t_pred: ndarray
             Estimated propensity scores
         '''
         prob_of_t_pred = model.predict(input_value)
-        if plot_coeffs:
-            self._plot_propensity_scores(prob_of_t_pred)
         return prob_of_t_pred
-
-    def _plot_propensity_scores(self, prob_of_t_pred):
-        '''
-        Plot a histogram for estimated propensity scores.
-
-        Parameters
-        ----------
-        prob_of_t_pred: ndarray
-            Estimated conditional average treatment effect.
-        mu0_pred: ndarray
-            Estimated target value given x in case of no treatment.
-        Plotting predicted treatment effect coefficients.
-        '''
-        plt.figure(figsize=(8, 4))
-        plt.clf()
-
-        plt.hist(prob_of_t_pred, alpha=0.7)
-        plt.ylabel('Density')
-        plt.xlabel('Propensity scores')
-        plt.legend(loc='upper right')
-        plt.title('Estimated propensity scores')
 
 
 def determine_batch_size(batch_size, training_data):
@@ -646,8 +577,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
                         hidden_layer_sizes_t=None, dropout_rates_t=None,
                         batch_size_t=None, alpha_t=0., r_par_t=0.,
                         optimizer_t='Adam', learning_rate_t=0.0009,
-                        max_epochs_without_change_t=30, max_nepochs_t=5000,
-                        plot_coeffs=True):
+                        max_epochs_without_change_t=30, max_nepochs_t=5000):
     '''
     Parameters
     ----------
@@ -773,8 +703,6 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         Maximum number of epochs for which neural network, that
         estimates propensity scores, will be trained.
         Default value is 5000.
-    plot_coeffs: bool, optional
-        Should estimated values be plotted or not. Default: True
 
     Returns
     -------
@@ -783,7 +711,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     mu0_pred: ndarray
         Estimated target value given x in case of no treatment.
     prob_t_pred: ndarray
-        Estimated propensity scores
+        Estimated propensity scores.
     psi_0: ndarray
         Influence function for given x in case of no treatment.
     psi_1: ndarray
@@ -793,6 +721,11 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
         if hidden_layer_sizes_t is None:
             raise ValueError('Hidden layer sizes needs to be specified for' +
                              ' the second neural network as well!')
+    
+    assert_message = 'Treatment needs to be binary, expressed as 0-1 vector!'
+    assert list(np.unique(training_data[ind_T])) == [0, 1], assert_message
+    assert list(np.unique(validation_data[ind_T])) == [0, 1], assert_message
+    assert list(np.unique(estimation_data[ind_T])) == [0, 1], assert_message
 
     batch_size = determine_batch_size(batch_size, training_data)
     if dropout_rates is None:
@@ -808,7 +741,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
          validation_data[ind_Y]])
 
     tau_pred, mu0_pred = coeff_net.retrieve_coeffs(
-        model_coeff_net, estimation_data[ind_X], plot_coeffs=plot_coeffs)
+        model_coeff_net, estimation_data[ind_X])
 
     if estimate_ps:
         if batch_size_t is None:
@@ -826,7 +759,7 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
             [validation_data[ind_X], validation_data[ind_T]])
 
         prob_t_pred = ps_net.retrieve_propensity_scores(
-            model_ps_net, estimation_data[ind_X], plot_coeffs=plot_coeffs)
+            model_ps_net, estimation_data[ind_X])
     else:
         prob_t_pred = np.mean(estimation_data[ind_T])
 
