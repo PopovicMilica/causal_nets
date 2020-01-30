@@ -551,7 +551,7 @@ def _influence_functions(mu0_pred, tau_pred, Y, T,
 
 
 def causal_net_estimate(training_data, validation_data,
-                        estimation_data,  hidden_layer_sizes,
+                        test_data,  hidden_layer_sizes,
                         dropout_rates=None, batch_size=None, alpha=0.,
                         r_par=0., optimizer='Adam', learning_rate=0.0009,
                         max_epochs_without_change=30, max_nepochs=5000,
@@ -564,20 +564,15 @@ def causal_net_estimate(training_data, validation_data,
     ----------
     training_data: list of arrays
         Data on which the training of the Neural Network will be
-        performed. It is comprised as a list of arrays, in the
-        following manner:
-        [X_train, T_train, Y_train] or [T_train, X_train, Y_train] or
-        any other ordering of the three arrays, just be carful when you
-        specify the above indices as the mapping to be correct. Also,
-        once you choose your ordering, be consistant to preserve
-        ordering in all the data arrays.
+        performed. It must be comprised as a list of arrays, in the
+        following manner: [X_train, T_train, Y_train]
         Here, `X_train` is an array of input features, `T_train` is
         the treatment array, and `Y_train` is the target array.
     validation_data: list of arrays
         Data on which the validation of the Neural Network will be
         performed. It has to be composed in the same manner as the
         training data.
-    estimation_data: list of arrays
+    test_data: list of arrays
         Data on which we want to perform estimation. It has to be
         composed in the same manner as the training and validation data.
     hidden_layer_sizes: list of ints
@@ -695,7 +690,7 @@ def causal_net_estimate(training_data, validation_data,
     assert_message = 'Treatment needs to be binary, expressed as 0-1 vector!'
     assert list(np.unique(training_data[1])) == [0, 1], assert_message
     assert list(np.unique(validation_data[1])) == [0, 1], assert_message
-    assert list(np.unique(estimation_data[1])) == [0, 1], assert_message
+    assert list(np.unique(test_data[1])) == [0, 1], assert_message
 
     batch_size = determine_batch_size(batch_size, training_data)
     if dropout_rates is None:
@@ -709,7 +704,7 @@ def causal_net_estimate(training_data, validation_data,
         training_data, validation_data)
 
     tau_pred, mu0_pred = coeff_net.retrieve_coeffs(
-        model_coeff_net, estimation_data[0])
+        model_coeff_net, test_data[0])
 
     if estimate_ps:
         if batch_size_t is None:
@@ -726,13 +721,13 @@ def causal_net_estimate(training_data, validation_data,
             training_data[0:2], validation_data[0:2])
 
         prob_t_pred = ps_net.retrieve_propensity_scores(
-            model_ps_net, estimation_data[0])
+            model_ps_net, test_data[0])
     else:
-        prob_t_pred = np.mean(estimation_data[1])
+        prob_t_pred = np.mean(test_data[1])
 
     psi_0, psi_1 = _influence_functions(mu0_pred, tau_pred,
-                                        estimation_data[2],
-                                        estimation_data[1],
+                                        test_data[2],
+                                        test_data[1],
                                         prob_t_pred, estimate_ps)
 
     return tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1
