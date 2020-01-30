@@ -593,8 +593,8 @@ def determine_dropout_rates(hidden_layer_sizes):
     return [0]*len(hidden_layer_sizes)
 
 
-def _doubly_robust_estimator(mu0_pred, tau_pred, Y, T,
-                             prob_t_pred, estimate_ps):
+def _influence_functions(mu0_pred, tau_pred, Y, T,
+                         prob_t_pred, estimate_ps):
     '''
     Calculate the target value for each individual when treatment is
     0 or 1.
@@ -616,11 +616,9 @@ def _doubly_robust_estimator(mu0_pred, tau_pred, Y, T,
     Returns
     -------
         psi_0: ndarray
-            Doubly robust estimate of target value given x in case of
-            no treatment.
+            Influence function for given x in case of no treatment.
         psi_1: ndarray
-            Doubly robust estimate of target value given x in case of
-            treatment.
+            Influence function for given x in case of treatment.
     '''
     T = np.array(T).reshape(-1, 1)
     Y = np.array(Y).reshape(-1, 1)
@@ -787,16 +785,14 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     prob_t_pred: ndarray
         Estimated propensity scores
     psi_0: ndarray
-        Doubly robust estimate of target value given x in case of
-        no treatment.
+        Influence function for given x in case of no treatment.
     psi_1: ndarray
-        Doubly robust estimate of target value given x in case of
-        treatment.
+        Influence function for given x in case of treatment.
     '''
     if estimate_ps:
         if hidden_layer_sizes_t is None:
             raise ValueError('Hidden layer sizes needs to be specified for' +
-                             ' the second neural network as well')
+                             ' the second neural network as well!')
 
     batch_size = determine_batch_size(batch_size, training_data)
     if dropout_rates is None:
@@ -834,8 +830,9 @@ def causal_net_estimate(ind_X, ind_T, ind_Y, training_data, validation_data,
     else:
         prob_t_pred = np.mean(estimation_data[ind_T])
 
-    psi_0, psi_1 = _doubly_robust_estimator(
-        mu0_pred, tau_pred, estimation_data[ind_Y], estimation_data[ind_T],
-        prob_t_pred, estimate_ps)
+    psi_0, psi_1 = _influence_functions(mu0_pred, tau_pred,
+                                        estimation_data[ind_Y],
+                                        estimation_data[ind_T],
+                                        prob_t_pred, estimate_ps)
 
     return tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1
