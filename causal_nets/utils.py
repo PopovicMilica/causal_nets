@@ -5,7 +5,6 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
-import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
@@ -16,36 +15,12 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import concatenate
 from tensorflow.keras.callbacks import Callback
 import logging
-import random
 import warnings
 import matplotlib.cbook
 
 # Stopping deprecation warnings
 logging.getLogger('tensorflow').disabled = True
 warnings.filterwarnings('ignore', category=matplotlib.cbook.mplDeprecation)
-
-
-def _plotting_loss_functions(history):
-    '''
-    Plotting loss functions.
-
-    Parameters
-    ----------
-    history:
-        Keras history callback that records the run events and stores
-        them in history object.
-    '''
-    loss_train = history.history['loss']
-    loss_val = history.history['val_loss']
-    epochs = range(1, len(loss_val) + 1)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, loss_train, 'ro', alpha=0.7, label='Training loss')
-    _ = plt.plot(epochs, loss_val, 'b', label='Validation loss')
-    plt.title('Training and validation loss')
-    plt.xlabel('epochs')
-    plt.ylabel('loss value')
-    plt.legend()
 
 
 class _MyLogger(Callback):
@@ -55,9 +30,9 @@ class _MyLogger(Callback):
 
     Parameters
     ----------
-     n_epochs: after how many epochs to print a validation loss
+    n_epochs: int
+        after how many epochs to print a validation loss.
     '''
-
     def __init__(self, n_epochs):
         super().__init__()
         self.after_n_epochs = n_epochs
@@ -120,7 +95,7 @@ class CoeffNet():
     def _last_layer(self, combined_input):
         '''
         Building a custom layer which will be appended at the end of
-        feed-forward neural network.
+        the feed-forward neural network.
 
         In the case of regression, this layer will return the value of:
         tau * T + mu0
@@ -133,6 +108,10 @@ class CoeffNet():
         ----------
         combined_input: Tensor
             Concatenated layer of `tau`, `mu0` and `input_t`.
+
+        Returns
+        -------
+        V_values:
         '''
         import tensorflow as tf
         tau = combined_input[:, 0:1]
@@ -149,11 +128,11 @@ class CoeffNet():
 
         Parameters
         ----------
-        input_shape: 'Shape of the previous layer'
+        input_shape: Shape of the previous layer.
 
-        Returns:
+        Returns
         -------
-        The shape of the custom last layer
+        The shape of the custom last layer as a tuple.
         '''
         shape = list(input_shape)
         assert len(shape) == 2
@@ -173,10 +152,10 @@ class CoeffNet():
         Returns
         -------
         model: keras model
-            Full keras model
+            Full keras model that returns estimated target values.
         betas_model: keras model
             Model, that encapsulates only the feed-forward neural
-            network, which outputs coefficients.
+            network, which outputs causal coefficients.
         '''
         # Matrix of consumer characteristics
         input_x = Input(shape=(nfeatures,))
@@ -253,6 +232,9 @@ class CoeffNet():
         betas_model: keras model
             Model, that encapsulates only the feed-forward neural
             network, which as an output has causal coefficients.
+        history_dict: dict
+            Dictionary that stores validation and training loss values for
+            CoeffNet.
         '''
         # Clearing the weights
         K.clear_session()
@@ -274,9 +256,8 @@ class CoeffNet():
             validation_data=(validation_data[0:2], validation_data[2]),
             callbacks=[EarlyStop, _MyLogger(50)], shuffle=True, verbose=0)
 
-        # Plotting loss functions
-        _plotting_loss_functions(history)
-        return betas_model
+        history_dict = history.history
+        return betas_model, history_dict
 
     def retrieve_coeffs(self, betas_model, input_value):
         '''
@@ -288,7 +269,7 @@ class CoeffNet():
             Model, that encapsulates only the feed-forward neural
             network, which as an output has causal coefficients.
         input_value: array like
-            Features array
+            Features array.
 
         Returns
         -------
@@ -339,7 +320,7 @@ class PropensityScoreNet():
         Returns
         -------
         model: keras model
-            Keras model which returns propensity scores.
+            Keras model which returns estimated propensity scores.
         '''
         # Matrix of consumer characteristics
         input_x = Input(shape=(nfeatures,))
@@ -404,7 +385,10 @@ class PropensityScoreNet():
         Returns
         -------
         model: keras model
-            Keras model which returns propensity scores.
+            Keras model which returns estimated propensity scores.
+        history_ps_dict: dict
+            Dictionary that stores validation and training loss values
+            for PropensityScoreNet.
         '''
         # Clearing the weights
         K.clear_session()
@@ -420,15 +404,14 @@ class PropensityScoreNet():
             restore_best_weights=True)
 
         # Training the model
-        history = model.fit(
+        history_ps = model.fit(
             x=training_data[0], y=training_data[1],
             epochs=self.max_nepochs, batch_size=self.batch_size,
             validation_data=(validation_data[0], validation_data[1]),
             callbacks=[EarlyStop, _MyLogger(50)], shuffle=True, verbose=0)
 
-        # Plotting loss functions
-        _plotting_loss_functions(history)
-        return model
+        history_ps_dict = history_ps.history
+        return model, history_ps_dict
 
     def retrieve_propensity_scores(self, model, input_value):
         '''
@@ -438,7 +421,7 @@ class PropensityScoreNet():
         Parameters
         ----------
         model: keras model
-            Keras model which returns propensity scores.
+            Keras model which returns estimated propensity scores.
         input_value: array like
             Features array
 
@@ -551,7 +534,7 @@ def _influence_functions(mu0_pred, tau_pred, Y, T,
 
 
 def causal_net_estimate(training_data, validation_data,
-                        test_data,  hidden_layer_sizes,
+                        test_data, hidden_layer_sizes,
                         dropout_rates=None, batch_size=None, alpha=0.,
                         r_par=0., optimizer='Adam', learning_rate=0.0009,
                         max_epochs_without_change=30, max_nepochs=5000,
@@ -567,7 +550,7 @@ def causal_net_estimate(training_data, validation_data,
         performed. It must be comprised as a list of arrays, in the
         following manner: [X_train, T_train, Y_train]
         Here, `X_train` is an array of input features, `T_train` is
-        the treatment array, and `Y_train` is the target array.
+        the binary treatment array, and `Y_train` is the target array.
     validation_data: list of arrays
         Data on which the validation of the Neural Network will be
         performed. It has to be composed in the same manner as the
@@ -584,11 +567,11 @@ def causal_net_estimate(training_data, validation_data,
         E.g. hidden_layer_sizes = [60, 30]
     dropout_rates: list of floats or None, optional
         If it's a list than the values of the list represent dropout
-        rate for each layer of the neural network that estimates causal
-        coefficients. Each entry of the list has to be between 0 and 1.
-        Also, list has to be of the same length as the list
-        'hidden_layer_sizes'. If is set to None, than dropout is not
-        applied. Default value is None.
+        rate for each layer of the feed-forward neural network
+        that estimates causal coefficients. Each entry of the list has
+        to be between 0 and 1. Also, list has to be of the same length
+        as the list 'hidden_layer_sizes'. If is set to None, than
+        dropout is not applied. Default value is None.
     batch_size: int, optional
         Batch size for the neural network that estimates causal
         coefficients. Default value is None. If batch_size is None,
@@ -599,8 +582,8 @@ def causal_net_estimate(training_data, validation_data,
         Regularization strength parameter for the neural network that
         estimates causal coefficients. Default value is 0.
     r_par: float, optional
-        Mixing ratio of Ridge and Lasso regression for the neural network that
-        estimates causal coefficients.
+        Mixing ratio of Ridge and Lasso regression for the neural
+        network that estimates causal coefficients.
         Has to be between 0 and 1. If r_par = 0, than this is equal to
         having Lasso regression. If r_par = 1, than it is equal to
         having Ridge regression. Default value is 0.
@@ -615,15 +598,15 @@ def causal_net_estimate(training_data, validation_data,
         wait before stopping the training for the neural network that
         estimates causal coefficients. Default value is 30.
     max_nepochs: int, optional
-        Maximum number of epochs for which neural network, that
-        estimates causal coefficients, will be trained.
+        Maximum number of epochs for which neural network that
+        estimates causal coefficients will be trained.
         Default value is 5000.
-    estimate_ps: False, optional
+    estimate_ps: bool, optional
         Should the propensity scores be estimated or not. If the
         treatment is randomized then this variable should be set to
         False. In not randomized treatment case, it should be set to
         True. Default value is False.
-    hidden_layer_sizes_t: None, optional
+    hidden_layer_sizes_t: list of ints or None, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
         of the list defines the number of hidden layers. Entries of the
@@ -649,8 +632,8 @@ def causal_net_estimate(training_data, validation_data,
         Regularization strength parameter for the neural network that
         estimates propensity scores. Default value is 0.
     r_par_t: float, optional
-        Mixing ratio of Ridge and Lasso regression for the neural network that
-        estimates propensity scores.
+        Mixing ratio of Ridge and Lasso regression for the neural
+        network that estimates propensity scores.
         Has to be between 0 and 1. If r_par = 0, than this is equal to
         having Lasso regression. If r_par = 1, than it is equal to
         having Ridge regression. Default value is 0.
@@ -681,6 +664,13 @@ def causal_net_estimate(training_data, validation_data,
         Influence function for given x in case of no treatment.
     psi_1: ndarray
         Influence function for given x in case of treatment.
+    history_dict: dict
+        Dictionary that stores validation and training loss values for
+        CoeffNet.
+    history_ps_dict: dict
+        Dictionary that stores validation and training loss values for
+        PropensityScoreNet. If estimate_ps is set to None,
+        history_ps_dict is set to None as well.
     '''
     if estimate_ps:
         if hidden_layer_sizes_t is None:
@@ -700,9 +690,8 @@ def causal_net_estimate(training_data, validation_data,
                          alpha, r_par, optimizer, learning_rate,
                          max_epochs_without_change, max_nepochs)
 
-    model_coeff_net = coeff_net.training_NN(
+    model_coeff_net, history_dict = coeff_net.training_NN(
         training_data, validation_data)
-
     tau_pred, mu0_pred = coeff_net.retrieve_coeffs(
         model_coeff_net, test_data[0])
 
@@ -717,17 +706,17 @@ def causal_net_estimate(training_data, validation_data,
             r_par_t, optimizer_t, learning_rate_t,
             max_epochs_without_change_t, max_nepochs_t)
 
-        model_ps_net = ps_net.training_NN(
+        model_ps_net, history_ps_dict = ps_net.training_NN(
             training_data[0:2], validation_data[0:2])
-
         prob_t_pred = ps_net.retrieve_propensity_scores(
             model_ps_net, test_data[0])
     else:
         prob_t_pred = np.mean(test_data[1])
+        history_ps_dict = None
 
     psi_0, psi_1 = _influence_functions(mu0_pred, tau_pred,
                                         test_data[2],
                                         test_data[1],
                                         prob_t_pred, estimate_ps)
-
-    return tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1
+    return tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1, history_dict,\
+        history_ps_dict
