@@ -9,5 +9,4 @@ setup(name='causal_nets',
       author_email='popovic.v.milica@gmail.com',
       packages=['causal_nets'],
       install_requires=['numpy==1.16.4',
-                        'matplotlib==3.0.3',
                         'tensorflow>=1.14.0'])
