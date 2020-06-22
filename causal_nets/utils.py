@@ -16,11 +16,9 @@ from tensorflow.keras.layers import concatenate
 from tensorflow.keras.callbacks import Callback
 import logging
 import warnings
-import matplotlib.cbook
 
 # Stopping deprecation warnings
 logging.getLogger('tensorflow').disabled = True
-warnings.filterwarnings('ignore', category=matplotlib.cbook.mplDeprecation)
 
 
 class _MyLogger(Callback):
@@ -550,7 +548,7 @@ def causal_net_estimate(training_data, validation_data,
         performed. It must be comprised as a list of arrays, in the
         following manner: [X_train, T_train, Y_train]
         Here, `X_train` is an array of input features, `T_train` is
-        the binary treatment array, and `Y_train` is the target array.
+        the treatment array, and `Y_train` is the target array.
     validation_data: list of arrays
         Data on which the validation of the Neural Network will be
         performed. It has to be composed in the same manner as the
