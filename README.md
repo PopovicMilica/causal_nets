@@ -19,12 +19,11 @@ import causal_nets
 
 ### Example
 
-The below code is a short example showcasing the usage of causal_nets software. In order to try this example, additional Python packages need to be installed first: pandas and sklearn. The simplest way to install them is by using pip.
+The below code is a short example showcasing the usage of causal_nets software. In order to try this example, additional Python packages need to be installed first: matplotlib and sklearn. The simplest way to install them is by using pip.
 
 ```Python
 import numpy as np
 import tensorflow as tf
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from causal_nets import causal_net_estimate
 import matplotlib.pyplot as plt
