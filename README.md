@@ -19,7 +19,7 @@ import causal_nets
 
 ### Example
 
-The below code is a short example showcasing the usage of causal_nets software. In order to try this example, additional Python packages need to be installed first: matplotlib and sklearn. The simplest way to install them is by using pip.
+The below code is a short example showcasing the usage of causal_nets software. In order to try this example, additional Python packages need to be installed first: matplotlib and scikit-learn. The simplest way to install them is by using pip install.
 
 ```Python
 import numpy as np
@@ -58,18 +58,18 @@ plt.figure(figsize=(10, 5))
 plt.clf()
 
 plt.subplot(1, 2, 1)
-plt.hist(tau_pred, alpha=0.6, label='tau_pred', normed=True)
+plt.hist(tau_pred, alpha=0.6, label='tau_pred', density=True)
 plt.hist(tau_real, label='tau_real', histtype=u'step',
-         normed=True, linewidth=2.5)
+         density=True, linewidth=2.5)
 plt.legend(loc='upper right')
 plt.title('CATE(Conditional average treatment effect)')
 plt.xlabel('tau', fontsize=14)
 plt.ylabel('Density')
 
 plt.subplot(1, 2, 2)
-plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_0$_pred', normed=True)
+plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_0$_pred', density=True)
 plt.hist(mu0_real,label=r'$\mu_0$_real', histtype=u'step',
-         normed=True, linewidth=2.5)
+         density=True, linewidth=2.5)
 plt.legend(loc='upper right')
 plt.title(r'$\mu_0(x)$')
 plt.xlabel('mu0', fontsize=14)
