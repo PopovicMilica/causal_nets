@@ -37,7 +37,8 @@ class _MyLogger(Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self.after_n_epochs == 0:
-            print('%d val loss: %.4f\n' % (epoch+1, logs['val_loss']))
+            print('%d epoch - loss: %.4f  val loss: %.4f' % (
+                epoch+1, logs['loss'], logs['val_loss']))
 
 
 class CoeffNet():
@@ -248,11 +249,13 @@ class CoeffNet():
             restore_best_weights=True)
 
         # Training the model
+        print('\nTraining of the causal coefficients neural network:')
         history = model.fit(
             x=training_data[0:2], y=training_data[2],
             epochs=self.max_nepochs, batch_size=self.batch_size,
             validation_data=(validation_data[0:2], validation_data[2]),
-            callbacks=[EarlyStop, _MyLogger(50)], shuffle=True, verbose=0)
+            callbacks=[EarlyStop, _MyLogger(25)], shuffle=True, verbose=0)
+        print('Training is finished.\n')
 
         history_dict = history.history
         return betas_model, history_dict
@@ -402,11 +405,13 @@ class PropensityScoreNet():
             restore_best_weights=True)
 
         # Training the model
+        print('\nTraining of the propensity score neural network:')
         history_ps = model.fit(
             x=training_data[0], y=training_data[1],
             epochs=self.max_nepochs, batch_size=self.batch_size,
             validation_data=(validation_data[0], validation_data[1]),
             callbacks=[EarlyStop, _MyLogger(50)], shuffle=True, verbose=0)
+        print('Training is finished.')
 
         history_ps_dict = history_ps.history
         return model, history_ps_dict
