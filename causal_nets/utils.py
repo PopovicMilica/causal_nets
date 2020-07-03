@@ -16,6 +16,7 @@ from tensorflow.keras.layers import concatenate
 from tensorflow.keras.callbacks import Callback
 import logging
 import warnings
+from .input_checker import InputChecker
 
 # Stopping deprecation warnings
 logging.getLogger('tensorflow').disabled = True
@@ -28,10 +29,11 @@ class _MyLogger(Callback):
 
     Parameters
     ----------
-    n_epochs: int
-        after how many epochs to print a validation loss.
+    n_epochs: int, optional
+        After how many epochs to print a validation loss.
+        Default value is after each 25 epochs.
     '''
-    def __init__(self, n_epochs):
+    def __init__(self, n_epochs=25):
         super().__init__()
         self.after_n_epochs = n_epochs
 
@@ -193,15 +195,12 @@ class CoeffNet():
             opt = keras.optimizers.Adam(lr=self.learning_rate, beta_1=0.9,
                                         beta_2=0.999, epsilon=None, decay=0.0,
                                         amsgrad=True)
-
         elif self.optimizer == 'GradientDescent':
             opt = keras.optimizers.SGD(lr=self.learning_rate, momentum=0.0,
                                        decay=0.0, nesterov=False)
-        elif self.optimizer == 'RMSprop':
+        else:
             opt = keras.optimizers.RMSprop(lr=self.learning_rate, rho=0.9,
                                            epsilon=None, decay=0.0)
-        else:
-            raise ValueError('Optimizer not recognized!')
 
         model.compile(optimizer=opt, loss='mean_squared_error')
         return model, betas_model
@@ -254,7 +253,7 @@ class CoeffNet():
             x=training_data[0:2], y=training_data[2],
             epochs=self.max_nepochs, batch_size=self.batch_size,
             validation_data=(validation_data[0:2], validation_data[2]),
-            callbacks=[EarlyStop, _MyLogger(25)], shuffle=True, verbose=0)
+            callbacks=[EarlyStop, _MyLogger()], shuffle=True, verbose=0)
         print('Training is finished.\n')
 
         history_dict = history.history
@@ -351,15 +350,12 @@ class PropensityScoreNet():
             opt = keras.optimizers.Adam(lr=self.learning_rate, beta_1=0.9,
                                         beta_2=0.999, epsilon=None, decay=0.0,
                                         amsgrad=True)
-
         elif self.optimizer == 'GradientDescent':
             opt = keras.optimizers.SGD(lr=self.learning_rate, momentum=0.0,
                                        decay=0.0, nesterov=False)
-        elif self.optimizer == 'RMSprop':
+        else:
             opt = keras.optimizers.RMSprop(lr=self.learning_rate, rho=0.9,
                                            epsilon=None, decay=0.0)
-        else:
-            raise ValueError('Optimizer not recognized!')
 
         model.compile(optimizer=opt, loss='binary_crossentropy')
         return model
@@ -410,7 +406,7 @@ class PropensityScoreNet():
             x=training_data[0], y=training_data[1],
             epochs=self.max_nepochs, batch_size=self.batch_size,
             validation_data=(validation_data[0], validation_data[1]),
-            callbacks=[EarlyStop, _MyLogger(50)], shuffle=True, verbose=0)
+            callbacks=[EarlyStop, _MyLogger()], shuffle=True, verbose=0)
         print('Training is finished.')
 
         history_ps_dict = history_ps.history
@@ -439,37 +435,28 @@ class PropensityScoreNet():
 
 def determine_batch_size(batch_size, training_data):
     '''
-    Assign batch size value if the batch size is not provided, or if
-    it is provided, check if it is valid one and return the given batch
-    size if it is.
-
-    If batch_size is None, than batch size is equal to length of
-    training dataset for training datasets smaller than 50000 rows.
+    Assign batch size value if the batch size is not provided. 
+    If batch_size is None, than batch size is equal to the length of
+    the training dataset for training datasets with less than 50000 rows.
     Otherwise, it is set to 1024.
 
     Parameters
     ----------
     batch_size: int or None
         Batch size.
-    training_data:
-        Data on which training of the neural network should be
-        performed. Provided as a list of arrays.
+    training_data: list of arrays
+        Data on which the training of the neural network should be
+        performed.
 
     Returns
     -------
     batch_size: int
         Batch size.
     '''
-    if batch_size is None:
-        if len(training_data[0]) > 50000:
-            batch_size = 1024
-        else:
-            batch_size = len(training_data[0])
+    if len(training_data[0]) > 50000:
+        batch_size = 1024
     else:
-        assertion_error = ('Batch size value should be less then the' +
-                           ' length of the training data!')
-        assert batch_size < len(training_data[0]), assertion_error
-
+        batch_size = len(training_data[0])
     return batch_size
 
 
@@ -675,17 +662,18 @@ def causal_net_estimate(training_data, validation_data,
         PropensityScoreNet. If estimate_ps is set to None,
         history_ps_dict is set to None as well.
     '''
-    if estimate_ps:
-        if hidden_layer_sizes_t is None:
-            raise ValueError('Hidden layer sizes needs to be specified for' +
-                             ' the second neural network as well!')
+    # Check that all the inputs to causal_net_estimate function are valid
+    input_checker = InputChecker(training_data, validation_data, test_data,
+                 hidden_layer_sizes, dropout_rates, batch_size, alpha, r_par,
+                 optimizer, learning_rate, max_epochs_without_change,
+                 max_nepochs, estimate_ps, hidden_layer_sizes_t,
+                 dropout_rates_t, batch_size_t, alpha_t, r_par_t, optimizer_t,
+                 learning_rate_t, max_epochs_without_change_t, max_nepochs_t)
 
-    assert_message = 'Treatment needs to be binary, expressed as 0-1 vector!'
-    assert list(np.unique(training_data[1])) == [0, 1], assert_message
-    assert list(np.unique(validation_data[1])) == [0, 1], assert_message
-    assert list(np.unique(test_data[1])) == [0, 1], assert_message
+    input_checker.check_all_parameters()
 
-    batch_size = determine_batch_size(batch_size, training_data)
+    if batch_size is None:
+        batch_size = determine_batch_size(batch_size, training_data)
     if dropout_rates is None:
         dropout_rates = determine_dropout_rates(hidden_layer_sizes)
 
