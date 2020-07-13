@@ -19,9 +19,10 @@ class InputChecker():
     def __init__(self, training_data, validation_data, test_data,
                  hidden_layer_sizes, dropout_rates, batch_size, alpha, r_par,
                  optimizer, learning_rate, max_epochs_without_change,
-                 max_nepochs, estimate_ps, hidden_layer_sizes_t,
+                 max_nepochs, seed, estimate_ps, hidden_layer_sizes_t,
                  dropout_rates_t, batch_size_t, alpha_t, r_par_t, optimizer_t,
-                 learning_rate_t, max_epochs_without_change_t, max_nepochs_t):
+                 learning_rate_t, max_epochs_without_change_t, max_nepochs_t,
+                 seed_t):
 
         self.training_data = training_data
         self.validation_data = validation_data
@@ -35,6 +36,7 @@ class InputChecker():
         self.learning_rate = learning_rate
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
+        self.seed = seed
         self.estimate_ps = estimate_ps
         self.hidden_layer_sizes_t = hidden_layer_sizes_t
         self.dropout_rates_t = dropout_rates_t
@@ -45,6 +47,7 @@ class InputChecker():
         self.learning_rate_t = learning_rate_t
         self.max_epochs_without_change_t = max_epochs_without_change_t
         self.max_nepochs_t = max_nepochs_t
+        self.seed_t = seed_t
 
     def _check_if_the_array_is_a_vector(self, data_array):
         '''Check if the data_array is an array of shape Nx1 or N.'''
@@ -181,6 +184,15 @@ class InputChecker():
                 raise ValueError(
                     'max_epochs_without_change must be a non-negative integer')
 
+    def _is_seed_par_valid(self, seed):
+        '''Check if the value provided for seed parameter is valid.'''
+        if seed and not isinstance(seed, int):
+            raise TypeError(
+                'Seed must be provided as an integer or set to None')
+        if seed is not None:
+            if seed <= 0:
+                raise ValueError('Seed must be a positive integer')
+
     def _is_estimate_ps_valid(self, estimate_ps):
         '''Check if the value provided for estimate_ps is valid.'''
         if not isinstance(estimate_ps, bool):
@@ -211,6 +223,7 @@ class InputChecker():
         self._is_learning_rate_valid(self.learning_rate)
         self._is_max_epochs_valid(self.max_nepochs)
         self._is_max_epochs_without_change_valid(self.max_epochs_without_change)
+        self._is_seed_par_valid(self.seed)
 
         # Check the validity of estimate_ps:
         self._is_estimate_ps_valid(self.estimate_ps)
@@ -228,3 +241,4 @@ class InputChecker():
             self._is_max_epochs_valid(self.max_nepochs_t)
             self._is_max_epochs_without_change_valid(
                 self.max_epochs_without_change_t)
+            self._is_seed_par_valid(self.seed_t)
