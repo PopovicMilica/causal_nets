@@ -43,6 +43,19 @@ class _MyLogger(Callback):
                 epoch+1, logs['loss'], logs['val_loss']))
 
 
+def set_tensorflow_seed(seed_num):
+    '''
+    Set tensorflow seed if provided.
+
+    Parameters
+    ----------
+    seed: int or None
+         Tensorflow seed number
+    '''
+    if seed_num is not None:
+        tf.compat.v1.set_random_seed(seed_num)
+
+
 class CoeffNet():
     '''
     Neural network for causal effect estimation.
@@ -75,12 +88,14 @@ class CoeffNet():
     max_nepochs: int
         Maximum number of epochs for which the neural network will
         be trained.
+    seed: int or None
+        Tensorflow seed number.
     nparameters: int
         Number of units in the output layer.
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates,
                  batch_size, alpha, r_par, optimizer, learning_rate,
-                 max_epochs_without_change, max_nepochs):
+                 max_epochs_without_change, max_nepochs, seed):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
@@ -92,6 +107,9 @@ class CoeffNet():
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
         self.nparameters = 2
+    
+        # Set tensorflow seed
+        set_tensorflow_seed(seed)
 
     def _last_layer(self, combined_input):
         '''
@@ -294,7 +312,7 @@ class PropensityScoreNet():
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates, batch_size,
                  alpha, r_par, optimizer, learning_rate,
-                 max_epochs_without_change, max_nepochs):
+                 max_epochs_without_change, max_nepochs, seed):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
@@ -306,6 +324,9 @@ class PropensityScoreNet():
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
         self.nparameters = 1
+
+        # Set tensorflow seed
+        set_tensorflow_seed(seed)
 
     def _building_the_model(self, nfeatures):
         '''
@@ -523,15 +544,16 @@ def _influence_functions(mu0_pred, tau_pred, Y, T,
     return psi_0, psi_1
 
 
-def causal_net_estimate(training_data, validation_data,
-                        test_data, hidden_layer_sizes,
-                        dropout_rates=None, batch_size=None, alpha=0.,
-                        r_par=0., optimizer='Adam', learning_rate=0.0009,
-                        max_epochs_without_change=30, max_nepochs=5000,
-                        estimate_ps=False, hidden_layer_sizes_t=None,
-                        dropout_rates_t=None, batch_size_t=None, alpha_t=0.,
-                        r_par_t=0., optimizer_t='Adam', learning_rate_t=0.0009,
-                        max_epochs_without_change_t=30, max_nepochs_t=5000):
+def causal_net_estimate(training_data, validation_data, test_data,
+                        hidden_layer_sizes,dropout_rates=None,
+                        batch_size=None, alpha=0., r_par=0., optimizer='Adam',
+                        learning_rate=0.0009, max_epochs_without_change=30,
+                        max_nepochs=5000, seed=None, estimate_ps=False,
+                        hidden_layer_sizes_t=None, dropout_rates_t=None,
+                        batch_size_t=None, alpha_t=0., r_par_t=0.,
+                        optimizer_t='Adam', learning_rate_t=0.0009,
+                        max_epochs_without_change_t=30, max_nepochs_t=5000,
+                        seed_t=None):
     '''
     Parameters
     ----------
@@ -591,6 +613,9 @@ def causal_net_estimate(training_data, validation_data,
         Maximum number of epochs for which neural network that
         estimates causal coefficients will be trained.
         Default value is 5000.
+    seed: int or None, optional
+        Tensorflow seed number for the neural network that estimates
+        causal coefficients. Default value is None.
     estimate_ps: bool, optional
         Should the propensity scores be estimated or not. If the
         treatment is randomized then this variable should be set to
@@ -641,6 +666,9 @@ def causal_net_estimate(training_data, validation_data,
         Maximum number of epochs for which neural network, that
         estimates propensity scores, will be trained.
         Default value is 5000.
+    seed_t: int or None, optional
+        Tensorflow seed number for the neural network that estimates
+        propensity scores. Default value is None.
 
     Returns
     -------
@@ -666,9 +694,10 @@ def causal_net_estimate(training_data, validation_data,
     input_checker = InputChecker(training_data, validation_data, test_data,
                  hidden_layer_sizes, dropout_rates, batch_size, alpha, r_par,
                  optimizer, learning_rate, max_epochs_without_change,
-                 max_nepochs, estimate_ps, hidden_layer_sizes_t,
+                 max_nepochs, seed, estimate_ps, hidden_layer_sizes_t,
                  dropout_rates_t, batch_size_t, alpha_t, r_par_t, optimizer_t,
-                 learning_rate_t, max_epochs_without_change_t, max_nepochs_t)
+                 learning_rate_t, max_epochs_without_change_t, max_nepochs_t,
+                 seed_t)
 
     input_checker.check_all_parameters()
 
@@ -679,7 +708,7 @@ def causal_net_estimate(training_data, validation_data,
 
     coeff_net = CoeffNet(hidden_layer_sizes, dropout_rates, batch_size,
                          alpha, r_par, optimizer, learning_rate,
-                         max_epochs_without_change, max_nepochs)
+                         max_epochs_without_change, max_nepochs, seed)
 
     model_coeff_net, history_dict = coeff_net.training_NN(
         training_data, validation_data)
@@ -695,7 +724,7 @@ def causal_net_estimate(training_data, validation_data,
         ps_net = PropensityScoreNet(
             hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t,
             r_par_t, optimizer_t, learning_rate_t,
-            max_epochs_without_change_t, max_nepochs_t)
+            max_epochs_without_change_t, max_nepochs_t, seed_t)
 
         model_ps_net, history_ps_dict = ps_net.training_NN(
             training_data[0:2], validation_data[0:2])
