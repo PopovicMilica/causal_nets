@@ -1,4 +1,3 @@
-
 import os
 # Stopping Tensorflow from printing info messages
 # and warnings.
@@ -75,8 +74,8 @@ class CoeffNet():
         Regularization strength parameter.
     r_par: float
         Mixing ratio of Ridge and Lasso regression.
-        Has to be between 0 and 1. If r_par = 0, than this is equal to
-        having Lasso regression. If r_par = 1, than it is equal to
+        Has to be between 0 and 1. If r_par = 1, than this is equal to
+        having Lasso regression. If r_par = 0, than it is equal to
         having Ridge regression.
     optimizer: {'Adam', 'GradientDescent', 'RMSprop'}
         Which optimizer to use.
@@ -107,7 +106,7 @@ class CoeffNet():
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
         self.nparameters = 2
-    
+
         # Set tensorflow seed
         set_tensorflow_seed(seed)
 
@@ -116,8 +115,7 @@ class CoeffNet():
         Building a custom layer which will be appended at the end of
         the feed-forward neural network.
 
-        In the case of regression, this layer will return the value of:
-        tau * T + mu0
+        This layer will return the value of: tau * T + mu0,
         where `tau` is conditional average treatment effect for each
         individual, `T` is the treatment for each individual and
         `mu0` is estimated target value given x in case of no treatment
@@ -182,19 +180,20 @@ class CoeffNet():
         # Array of treatments
         input_t = Input(shape=(1,))
 
-        for i in range(len(self.hidden_layer_sizes)):
-            if i == 0:
-                output = Dropout(self.dropout_rates[i])(input_x)
-            else:
-                output = Dropout(self.dropout_rates[i])(output)
+        reg = keras.regularizers.l1_l2(
+            l1=self.alpha*self.r_par, l2=self.alpha*(1-self.r_par))
 
-            reg = keras.regularizers.l1_l2(
-                l1=self.alpha*self.r_par, l2=self.alpha*(1-self.r_par))
+        for i in range(len(self.hidden_layer_sizes)):
+
+            if i == 0:
+                output = input_x
 
             output = Dense(self.hidden_layer_sizes[i], activation='relu',
                            use_bias=True, kernel_initializer='glorot_uniform',
                            kernel_regularizer=reg,
                            bias_initializer='zeros')(output)
+
+            output = Dropout(self.dropout_rates[i])(output)
 
         betas = Dense(self.nparameters, activation=None, use_bias=True,
                       kernel_initializer='glorot_uniform',
@@ -346,19 +345,19 @@ class PropensityScoreNet():
         # Matrix of consumer characteristics
         input_x = Input(shape=(nfeatures,))
 
+        reg = keras.regularizers.l1_l2(
+            l1=self.alpha*self.r_par, l2=self.alpha*(1-self.r_par))
+
         for i in range(len(self.hidden_layer_sizes)):
             if i == 0:
-                output = Dropout(self.dropout_rates[i])(input_x)
-            else:
-                output = Dropout(self.dropout_rates[i])(output)
-
-            reg = keras.regularizers.l1_l2(
-                l1=self.alpha*self.r_par, l2=self.alpha*(1-self.r_par))
+                output = input_x
 
             output = Dense(self.hidden_layer_sizes[i], activation='relu',
-                           use_bias=True, kernel_initializer='glorot_uniform',
+                           use_bias=True,
+                           kernel_initializer='glorot_uniform',
                            kernel_regularizer=reg,
                            bias_initializer='zeros')(output)
+            output = Dropout(self.dropout_rates[i])(output)
 
         ps_outputs = Dense(self.nparameters, activation='sigmoid',
                            use_bias=True, kernel_initializer='glorot_uniform',
@@ -456,7 +455,7 @@ class PropensityScoreNet():
 
 def determine_batch_size(batch_size, training_data):
     '''
-    Assign batch size value if the batch size is not provided. 
+    Assign batch size value if the batch size is not provided.
     If batch_size is None, than batch size is equal to the length of
     the training dataset for training datasets with less than 50000 rows.
     Otherwise, it is set to 1024.
@@ -545,7 +544,7 @@ def _influence_functions(mu0_pred, tau_pred, Y, T,
 
 
 def causal_net_estimate(training_data, validation_data, test_data,
-                        hidden_layer_sizes,dropout_rates=None,
+                        hidden_layer_sizes, dropout_rates=None,
                         batch_size=None, alpha=0., r_par=0., optimizer='Adam',
                         learning_rate=0.0009, max_epochs_without_change=30,
                         max_nepochs=5000, seed=None, estimate_ps=False,
@@ -596,8 +595,8 @@ def causal_net_estimate(training_data, validation_data, test_data,
     r_par: float, optional
         Mixing ratio of Ridge and Lasso regression for the neural
         network that estimates causal coefficients.
-        Has to be between 0 and 1. If r_par = 0, than this is equal to
-        having Lasso regression. If r_par = 1, than it is equal to
+        Has to be between 0 and 1. If r_par = 1, than this is equal to
+        having Lasso regression. If r_par = 0, than it is equal to
         having Ridge regression. Default value is 0.
     optimizer: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
@@ -649,8 +648,8 @@ def causal_net_estimate(training_data, validation_data, test_data,
     r_par_t: float, optional
         Mixing ratio of Ridge and Lasso regression for the neural
         network that estimates propensity scores.
-        Has to be between 0 and 1. If r_par = 0, than this is equal to
-        having Lasso regression. If r_par = 1, than it is equal to
+        Has to be between 0 and 1. If r_par_t = 1, than this is equal to
+        having Lasso regression. If r_par_t = 0, than it is equal to
         having Ridge regression. Default value is 0.
     optimizer_t: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
@@ -691,13 +690,13 @@ def causal_net_estimate(training_data, validation_data, test_data,
         history_ps_dict is set to None as well.
     '''
     # Check that all the inputs to causal_net_estimate function are valid
-    input_checker = InputChecker(training_data, validation_data, test_data,
-                 hidden_layer_sizes, dropout_rates, batch_size, alpha, r_par,
-                 optimizer, learning_rate, max_epochs_without_change,
-                 max_nepochs, seed, estimate_ps, hidden_layer_sizes_t,
-                 dropout_rates_t, batch_size_t, alpha_t, r_par_t, optimizer_t,
-                 learning_rate_t, max_epochs_without_change_t, max_nepochs_t,
-                 seed_t)
+    input_checker = InputChecker(
+        training_data, validation_data, test_data, hidden_layer_sizes,
+        dropout_rates, batch_size, alpha, r_par, optimizer, learning_rate,
+        max_epochs_without_change, max_nepochs, seed, estimate_ps,
+        hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t, r_par_t,
+        optimizer_t, learning_rate_t, max_epochs_without_change_t,
+        max_nepochs_t, seed_t)
 
     input_checker.check_all_parameters()
 
