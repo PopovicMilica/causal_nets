@@ -309,5 +309,5 @@ causal_net_estimate(training_data, validation_data,
 
 ### References
 
-Farrell, M.H., Liang, T. and Misra, S., 2018:
+Farrell, M.H., Liang, T. and Misra, S., 2019:
 'Deep neural networks for estimation and inference', [<a href="https://arxiv.org/pdf/1809.09953.pdf">arxiv</a>]
