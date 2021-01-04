@@ -310,5 +310,4 @@ causal_net_estimate(training_data, validation_data,
 ### References
 
 Farrell, M.H., Liang, T. and Misra, S., 2018:
-'Deep neural networks for estimation and inference: Application to causal effects and other semiparametric estimands',
-[<a href="https://arxiv.org/pdf/1809.09953.pdf">arxiv</a>]
+'Deep neural networks for estimation and inference', [<a href="https://arxiv.org/pdf/1809.09953.pdf">arxiv</a>]
