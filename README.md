@@ -19,7 +19,7 @@ import causal_nets
 
 ### Example
 
-The below code is a short example showcasing the usage of causal_nets software. In order to try this example, additional Python packages need to be installed first: matplotlib and scikit-learn. The simplest way to install them is by using pip install.
+The below code is a short example showcasing the usage of causal_nets software.
 
 ```Python
 import numpy as np
@@ -309,5 +309,4 @@ causal_net_estimate(training_data, validation_data,
 
 ### References
 
-Farrell, M.H., Liang, T. and Misra, S., 2019:
-'Deep neural networks for estimation and inference', [<a href="https://arxiv.org/pdf/1809.09953.pdf">arxiv</a>]
+Farrell, M.H., Liang, T. and Misra, S. (2021), Deep Neural Networks for Estimation and Inference. Econometrica, 89: 181-213. https://doi.org/10.3982/ECTA16901
