@@ -105,7 +105,7 @@ Y_train = Y[split$idx.train]
 T_train = T[split$idx.train]
 X_valid = X[split$idx.test,]
 Y_valid = Y[split$idx.test]
-T_valid = T_obs[split$idx.test]
+T_valid = T[split$idx.test]
 
 # Converting arrays into ndarrays which are recognized by Python
 X_train = np$array(X_train)
