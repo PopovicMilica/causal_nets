@@ -23,14 +23,13 @@ The below code is a short example showcasing the usage of causal_nets software.
 
 ```Python
 import numpy as np
-import tensorflow as tf
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from causal_nets import causal_net_estimate
-import matplotlib.pyplot as plt
+
 
 # Setting the seeds
 np.random.seed(3)
-tf.compat.v1.set_random_seed(12)
 
 # Generating the fake data
 N = 10000
@@ -39,40 +38,40 @@ mu0_real = 0.012*X[:, 3] - 0.75*X[:, 5]*X[:, 7] - 0.9*X[:, 4] - np.mean(X, axis=
 tau_real = X[:, 2] + 0.04*X[:, 9] - 0.35*np.log(X[:, 3])
 prob_of_T = 0.5
 T = np.random.binomial(size=N, n=1, p=prob_of_T)
-normal_errors = np.random.normal(size=[N,], loc=0.0, scale=1.0)
+normal_errors = np.random.normal(size=[N, ], loc=0.0, scale=1.0)
 Y = mu0_real + tau_real*T + normal_errors
 
 # Creating training and validation dataset
 X_train, X_valid, T_train, T_valid, Y_train, Y_valid = train_test_split(
-    X, T, Y, test_size=0.2, random_state=88)
+    X, T, Y, test_size=0.2, random_state=42)
 
-# Getting causal estimates 
+# Getting causal estimates
 tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1, history, history_ps = causal_net_estimate(
     [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], [X, T, Y],
     [30, 20, 15, 10, 5], dropout_rates=None, batch_size=None, alpha=0.,
     r_par=0., optimizer='Adam', learning_rate=0.0009,
-    max_epochs_without_change=30, max_nepochs=10000, estimate_ps=False)
+    max_epochs_without_change=30, max_nepochs=10000, seed=None, estimate_ps=False)
 
-# Plotting estimated coefficient vs real coefficients    
+# Plotting estimated coefficient vs true coefficients    
 plt.figure(figsize=(10, 5))
 plt.clf()
 
 plt.subplot(1, 2, 1)
-plt.hist(tau_pred, alpha=0.6, label='tau_pred', density=True)
-plt.hist(tau_real, label='tau_real', histtype=u'step',
+plt.hist(tau_pred, alpha=0.6, label=r'$\tau~_{pred}$', density=True)
+plt.hist(tau_real, label=r'$\tau~_{ real}$', histtype=u'step',
          density=True, linewidth=2.5)
 plt.legend(loc='upper right')
 plt.title('CATE(Conditional average treatment effect)')
-plt.xlabel('tau', fontsize=14)
+plt.xlabel(r'$\tau$', fontsize=14)
 plt.ylabel('Density')
 
 plt.subplot(1, 2, 2)
-plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_0$_pred', density=True)
-plt.hist(mu0_real,label=r'$\mu_0$_real', histtype=u'step',
+plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_{0~pred}$', density=True)
+plt.hist(mu0_real,label=r'$\mu_{0~real}$', histtype=u'step',
          density=True, linewidth=2.5)
 plt.legend(loc='upper right')
 plt.title(r'$\mu_0(x)$')
-plt.xlabel('mu0', fontsize=14)
+plt.xlabel(r'$\mu_0$', fontsize=14)
 plt.ylabel('Density')
 
 plt.tight_layout()
@@ -123,59 +122,55 @@ coeffs = causalNets$causal_net_estimate(
     list(X_train, T_train, Y_train), list(X_valid, T_valid, Y_valid),
     list(X, T, Y),  list(30L, 20L, 15L, 10L, 5L), dropout_rates=NULL, batch_size=NULL,
     alpha=0., r_par=0., optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30L,
-    max_nepochs=10000L, estimate_ps=FALSE)
+    max_nepochs=10000L, seed=NULL, estimate_ps=FALSE)
 
-# Plotting causal coefficients
+# Plotting estimated coefficient vs true coefficients
 tau_pred <- as.vector(coeffs[[1]])
 mu0_pred <- as.vector(coeffs[[2]])
 
-c1 <- rgb(173, 216, 230, max=255, alpha=80, names="lt.blue")
-c2 <- rgb(255, 192, 203, max=255, alpha=80, names="lt.pink")
-c3 <- rgb(0, 0, 230, max=255, alpha=70, names="purple")
-c4 <- rgb(0, 230, 0, max=255, alpha=70, names="green")
+c1 <- rgb(0, 0, 230, max=255, alpha=70, names="purple")
+c2 <- rgb(0, 230, 0, max=255, alpha=70, names="green") 
 
 options(repr.plot.width=9, repr.plot.height=5)
 par(mfrow=c(1,2))
 
-# Plotting distributions of estimated vs true causal coefficients
-
+# Plot histograms for tau_pred and tau_real
 x_min <- min(c(tau_pred, tau_real))
 x_max <- max(c(tau_pred, tau_real))
 
-# Plot histograms for tau_pred and tau_real
 hist(tau_pred, main="CATE(Conditional average treatment effect)",
-     freq=FALSE, cex.main=0.9, ylab="Density", xlab="tau", col=c3,
-     xlim=c(x_min, x_max),  ylim=c(0, 1))
-hist(tau_real, col=c4, xlim=c(x_min, x_max), add=TRUE,
-     freq=FALSE, ylim=c(0, 1))
-legend("topright",  inset=.02, legend=c("tau_pred", "tau_real"), 
-       fill=c(c3, c4), box.lty=0, cex = 0.6)
+     freq=FALSE, cex.main=0.9, ylab="Density", xlab=expression(tau), col=c1,
+     xlim=c(x_min, x_max), border=F)
+hist(tau_real, col=c2, xlim=c(x_min, x_max), add=TRUE,
+     freq=FALSE, border=F)
+legend("topright", legend=c(expression(tau[' pred']), expression(tau[' real'])), 
+       fill=c(c1, c2), box.lty=0, cex=0.8, border=F, x.intersp=0.5)
 
 # Plot histograms for mu0_pred and mu0_real
-
 x_min <- min(c(mu0_pred, mu0_real))
 x_max <- max(c(mu0_pred, mu0_real))
 
-hist(mu0_pred, main="mu0(x)",
-     freq=FALSE, cex.main=0.9, ylab="Density", xlab="mu0", col=c3,
-     xlim=c(x_min, x_max),  ylim=c(0, 1))
-hist(mu0_real, col=c4, xlim=c(x_min, x_max), add=TRUE,
-     freq=FALSE, ylim=c(0, 1))
-legend("topleft",  inset=.02, legend=c("mu0_pred", "mu0_real"), 
-       fill=c(c3, c4), box.lty=0, cex = 0.6)
+hist(mu0_pred, main=expression(mu[0]*"(x)"),
+     freq=FALSE, cex.main=0.9, ylab="Density", xlab=expression(mu[0]), col=c1,
+     xlim=c(x_min, x_max), border=F)
+hist(mu0_real, col=c2, xlim=c(x_min, x_max), add=TRUE,
+     freq=FALSE, border=F)
+legend("topright", legend=c(expression(mu[0][' pred']), expression(mu[0][' real'])), 
+       fill=c(c1, c2), box.lty=0, cex=0.8, border=F, x.intersp=0.5)
 ```
 
 ### Explanation of the parameters of the main function causal_net_estimate()
 ```
-causal_net_estimate(training_data, validation_data,
-                    test_data, hidden_layer_sizes,
-                    dropout_rates=None, batch_size=None, alpha=0.,
-                    r_par=0., optimizer='Adam', learning_rate=0.0009,
-                    max_epochs_without_change=30, max_nepochs=5000,
-                    estimate_ps=False, hidden_layer_sizes_t=None,
-                    dropout_rates_t=None, batch_size_t=None, alpha_t=0.,
-                    r_par_t=0., optimizer_t='Adam', learning_rate_t=0.0009,
-                    max_epochs_without_change_t=30, max_nepochs_t=5000)
+causal_net_estimate(training_data, validation_data, test_data,
+                    hidden_layer_sizes, dropout_rates=None,
+                    batch_size=None, alpha=0., r_par=0., optimizer='Adam',
+                    learning_rate=0.0009, max_epochs_without_change=30,
+                    max_nepochs=5000, seed=None, estimate_ps=False,
+                    hidden_layer_sizes_t=None, dropout_rates_t=None,
+                    batch_size_t=None, alpha_t=0., r_par_t=0.,
+                    optimizer_t='Adam', learning_rate_t=0.0009,
+                    max_epochs_without_change_t=30, max_nepochs_t=5000,
+                    seed_t=None)
 ```
 
     Parameters
@@ -219,8 +214,8 @@ causal_net_estimate(training_data, validation_data,
     r_par: float, optional
         Mixing ratio of Ridge and Lasso regression for the neural
         network that estimates causal coefficients.
-        Has to be between 0 and 1. If r_par = 0, than this is equal to
-        having Lasso regression. If r_par = 1, than it is equal to
+        Has to be between 0 and 1. If r_par = 1, than this is equal to
+        having Lasso regression. If r_par = 0, than it is equal to
         having Ridge regression. Default value is 0.
     optimizer: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
@@ -236,6 +231,9 @@ causal_net_estimate(training_data, validation_data,
         Maximum number of epochs for which neural network that
         estimates causal coefficients will be trained.
         Default value is 5000.
+    seed: int or None, optional
+        Tensorflow seed number for the neural network that estimates
+        causal coefficients. Default value is None.
     estimate_ps: bool, optional
         Should the propensity scores be estimated or not. If the
         treatment is randomized then this variable should be set to
@@ -269,8 +267,8 @@ causal_net_estimate(training_data, validation_data,
     r_par_t: float, optional
         Mixing ratio of Ridge and Lasso regression for the neural
         network that estimates propensity scores.
-        Has to be between 0 and 1. If r_par = 0, than this is equal to
-        having Lasso regression. If r_par = 1, than it is equal to
+        Has to be between 0 and 1. If r_par_t = 1, than this is equal to
+        having Lasso regression. If r_par_t = 0, than it is equal to
         having Ridge regression. Default value is 0.
     optimizer_t: {'Adam', 'GradientDescent', 'RMSprop'}, optional
         Which optimizer to use for the neural network that estimates
@@ -286,6 +284,9 @@ causal_net_estimate(training_data, validation_data,
         Maximum number of epochs for which neural network, that
         estimates propensity scores, will be trained.
         Default value is 5000.
+    seed_t: int or None, optional
+        Tensorflow seed number for the neural network that estimates
+        propensity scores. Default value is None.
 
     Returns
     -------
