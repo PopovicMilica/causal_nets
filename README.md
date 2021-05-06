@@ -17,6 +17,7 @@ Test installation by importing the package:
 import causal_nets
 ```
 
+Note: This software supports only Python versions 3.6 and above.
 ### Example
 
 The below code is a short example showcasing the usage of causal_nets software.
