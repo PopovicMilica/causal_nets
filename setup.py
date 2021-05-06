@@ -10,10 +10,15 @@ setup(
       description=description,
       author='Milica Popovic',
       author_email='popovic.v.milica@gmail.com',
+      classifiers=[
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9'],
       keywords=['deep learning', 'treatment effects', 'causal inference'],
-      install_requires=['numpy==1.19.2',
-                        'tensorflow==2.4.0'],
+      install_requires=['tensorflow>=2.4.0',
+                        'numpy'],
       extras_require={
-        'tests': ['scikit-learn']},
+        'tests': ['pytest', 'scikit-learn']},
       packages=find_packages(exclude=('tests',))
 )
