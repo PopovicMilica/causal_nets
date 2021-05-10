@@ -58,18 +58,24 @@ plt.figure(figsize=(10, 5))
 plt.clf()
 
 plt.subplot(1, 2, 1)
-plt.hist(tau_pred, alpha=0.6, label=r'$\tau~_{pred}$', density=True)
+bins = np.linspace(min(min(tau_pred),min(tau_real)),
+                    max(max(tau_pred),max(tau_real)), 15)
+plt.hist(tau_pred, alpha=0.6, label=r'$\tau~_{pred}$',
+         density=True, bins=bins)
 plt.hist(tau_real, label=r'$\tau~_{ real}$', histtype=u'step',
-         density=True, linewidth=2.5)
+         density=True, linewidth=2.5, bins=bins)
 plt.legend(loc='upper right')
 plt.title('CATE(Conditional average treatment effect)')
 plt.xlabel(r'$\tau$', fontsize=14)
 plt.ylabel('Density')
 
 plt.subplot(1, 2, 2)
-plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_{0~pred}$', density=True)
+bins = np.linspace(min(min(mu0_pred),min(mu0_real)),
+                    max(max(mu0_pred),max(mu0_real)), 15)
+plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_{0~pred}$',
+         density=True, bins=bins)
 plt.hist(mu0_real,label=r'$\mu_{0~real}$', histtype=u'step',
-         density=True, linewidth=2.5)
+         density=True, linewidth=2.5, bins=bins)
 plt.legend(loc='upper right')
 plt.title(r'$\mu_0(x)$')
 plt.xlabel(r'$\mu_0$', fontsize=14)
@@ -136,26 +142,22 @@ options(repr.plot.width=9, repr.plot.height=5)
 par(mfrow=c(1,2))
 
 # Plot histograms for tau_pred and tau_real
-x_min <- min(c(tau_pred, tau_real))
-x_max <- max(c(tau_pred, tau_real))
+breaks <- seq(min(c(tau_pred, tau_real)), max(c(tau_pred, tau_real)), length.out=15)
 
 hist(tau_pred, main="CATE(Conditional average treatment effect)",
      freq=FALSE, cex.main=0.9, ylab="Density", xlab=expression(tau), col=c1,
-     xlim=c(x_min, x_max), border=F)
-hist(tau_real, col=c2, xlim=c(x_min, x_max), add=TRUE,
-     freq=FALSE, border=F)
+     border=F, breaks=breaks)
+hist(tau_real, col=c2, add=TRUE, freq=FALSE, border=F, breaks=breaks)
 legend("topright", legend=c(expression(tau[' pred']), expression(tau[' real'])), 
        fill=c(c1, c2), box.lty=0, cex=0.8, border=F, x.intersp=0.5)
 
 # Plot histograms for mu0_pred and mu0_real
-x_min <- min(c(mu0_pred, mu0_real))
-x_max <- max(c(mu0_pred, mu0_real))
+breaks <- seq(min(c(mu0_pred, mu0_real)), max(c(mu0_pred, mu0_real)), length.out=15)
 
 hist(mu0_pred, main=expression(mu[0]*"(x)"),
      freq=FALSE, cex.main=0.9, ylab="Density", xlab=expression(mu[0]), col=c1,
-     xlim=c(x_min, x_max), border=F)
-hist(mu0_real, col=c2, xlim=c(x_min, x_max), add=TRUE,
-     freq=FALSE, border=F)
+     border=F, breaks=breaks)
+hist(mu0_real, col=c2, add=TRUE, freq=FALSE, border=F, breaks=breaks)
 legend("topright", legend=c(expression(mu[0][' pred']), expression(mu[0][' real'])), 
        fill=c(c1, c2), box.lty=0, cex=0.8, border=F, x.intersp=0.5)
 ```
