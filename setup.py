@@ -6,7 +6,7 @@ description = '''Software for estimation of heterogeneous treatment effects
   
 setup(
       name='causal_nets',
-      version='0.0.1',
+      version='0.1.0',
       description=description,
       author='Milica Popovic',
       author_email='popovic.v.milica@gmail.com',
