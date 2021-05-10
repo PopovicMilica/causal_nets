@@ -48,10 +48,9 @@ X_train, X_valid, T_train, T_valid, Y_train, Y_valid = train_test_split(
 
 # Getting causal estimates
 tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1, history, history_ps = causal_net_estimate(
-    [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], [X, T, Y],
-    [30, 20, 15, 10, 5], dropout_rates=None, batch_size=None, alpha=0.,
-    r_par=0., optimizer='Adam', learning_rate=0.0009,
-    max_epochs_without_change=30, max_nepochs=10000, seed=None, estimate_ps=False)
+    [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], [X, T, Y], [30, 20, 15, 10, 5],
+    dropout_rates=None, batch_size=None, alpha=0., r_par=0., optimizer='Adam', learning_rate=0.0009,
+    max_epochs_without_change=30, max_nepochs=10000, seed=None, estimate_ps=False, verbose=True)
 
 # Plotting estimated coefficient vs true coefficients    
 plt.figure(figsize=(10, 5))
@@ -129,7 +128,7 @@ coeffs = causalNets$causal_net_estimate(
     list(X_train, T_train, Y_train), list(X_valid, T_valid, Y_valid),
     list(X, T, Y),  list(30L, 20L, 15L, 10L, 5L), dropout_rates=NULL, batch_size=NULL,
     alpha=0., r_par=0., optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30L,
-    max_nepochs=10000L, seed=NULL, estimate_ps=FALSE)
+    max_nepochs=10000L, seed=NULL, estimate_ps=FALSE, verbose=TRUE)
 
 # Plotting estimated coefficient vs true coefficients
 tau_pred <- as.vector(coeffs[[1]])
@@ -164,16 +163,13 @@ legend("topright", legend=c(expression(mu[0][' pred']), expression(mu[0][' real'
 
 ### Explanation of the parameters of the main function causal_net_estimate()
 ```
-causal_net_estimate(training_data, validation_data, test_data,
-                    hidden_layer_sizes, dropout_rates=None,
-                    batch_size=None, alpha=0., r_par=0., optimizer='Adam',
-                    learning_rate=0.0009, max_epochs_without_change=30,
-                    max_nepochs=5000, seed=None, estimate_ps=False,
-                    hidden_layer_sizes_t=None, dropout_rates_t=None,
-                    batch_size_t=None, alpha_t=0., r_par_t=0.,
-                    optimizer_t='Adam', learning_rate_t=0.0009,
-                    max_epochs_without_change_t=30, max_nepochs_t=5000,
-                    seed_t=None)
+causal_net_estimate(training_data, validation_data, test_data, hidden_layer_sizes,
+                    dropout_rates=None, batch_size=None, alpha=0., r_par=0.,
+                    optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30,
+                    max_nepochs=5000, seed=None, estimate_ps=False, verbose=True,
+                    hidden_layer_sizes_t=None, dropout_rates_t=None, batch_size_t=None,
+                    alpha_t=0., r_par_t=0., optimizer_t='Adam', learning_rate_t=0.0009,
+                    max_epochs_without_change_t=30, max_nepochs_t=5000, seed_t=None)
 ```
 
     Parameters
@@ -242,6 +238,10 @@ causal_net_estimate(training_data, validation_data, test_data,
         treatment is randomized then this variable should be set to
         False. In not randomized treatment case, it should be set to
         True. Default value is False.
+    verbose: bool, optional
+        Should the model summary and losses during training be printed.
+        If it is set to False, the printing behavior is suppressed.
+        Default value is True.
     hidden_layer_sizes_t: list of ints or None, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
