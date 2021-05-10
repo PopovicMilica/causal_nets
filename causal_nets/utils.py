@@ -91,10 +91,12 @@ class CoeffNet():
         Tensorflow seed number.
     nparameters: int
         Number of units in the output layer.
+    verbose: bool
+        Prints out the model summary and training progress.
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates,
                  batch_size, alpha, r_par, optimizer, learning_rate,
-                 max_epochs_without_change, max_nepochs, seed):
+                 max_epochs_without_change, max_nepochs, seed, verbose):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
@@ -105,6 +107,7 @@ class CoeffNet():
         self.learning_rate = learning_rate
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
+        self.verbose = verbose
         self.nparameters = 2
 
         # Set tensorflow seed
@@ -258,21 +261,28 @@ class CoeffNet():
         # Building the modeL
         model, betas_model = self._building_the_model(nfeatures)
 
-        model.summary()
+        if self.verbose:
+            model.summary()
 
         EarlyStop = tf.keras.callbacks.EarlyStopping(
             monitor='val_loss', patience=self.max_epochs_without_change,
             restore_best_weights=True)
 
-        # Training the model
-        print('\nTraining of the causal coefficients neural network:')
-        history = model.fit(
-            x=training_data[0:2], y=training_data[2],
-            epochs=self.max_nepochs, batch_size=self.batch_size,
-            validation_data=(validation_data[0:2], validation_data[2]),
-            callbacks=[EarlyStop, _MyLogger()], shuffle=True, verbose=0)
-        print('Training is finished.\n')
-
+        if self.verbose:
+            # Training the model
+            print('\nTraining of the causal coefficients neural network:')
+            history = model.fit(
+                x=training_data[0:2], y=training_data[2],
+                epochs=self.max_nepochs, batch_size=self.batch_size,
+                validation_data=(validation_data[0:2], validation_data[2]),
+                callbacks=[EarlyStop, _MyLogger()], shuffle=True, verbose=0)
+            print('Training is finished.\n')
+        else:
+            history = model.fit(
+                x=training_data[0:2], y=training_data[2],
+                epochs=self.max_nepochs, batch_size=self.batch_size,
+                validation_data=(validation_data[0:2], validation_data[2]),
+                callbacks=[EarlyStop], shuffle=True, verbose=0)
         history_dict = history.history
         return betas_model, history_dict
 
@@ -311,7 +321,7 @@ class PropensityScoreNet():
     '''
     def __init__(self, hidden_layer_sizes, dropout_rates, batch_size,
                  alpha, r_par, optimizer, learning_rate,
-                 max_epochs_without_change, max_nepochs, seed):
+                 max_epochs_without_change, max_nepochs, seed, verbose):
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rates = dropout_rates
@@ -322,6 +332,7 @@ class PropensityScoreNet():
         self.learning_rate = learning_rate
         self.max_epochs_without_change = max_epochs_without_change
         self.max_nepochs = max_nepochs
+        self.verbose = verbose
         self.nparameters = 1
 
         # Set tensorflow seed
@@ -414,20 +425,28 @@ class PropensityScoreNet():
         # Building the modeL
         model = self._building_the_model(nfeatures)
 
-        model.summary()
+        if self.verbose:
+            model.summary()
 
         EarlyStop = tf.keras.callbacks.EarlyStopping(
             monitor='val_loss', patience=self.max_epochs_without_change,
             restore_best_weights=True)
 
-        # Training the model
-        print('\nTraining of the propensity score neural network:')
-        history_ps = model.fit(
-            x=training_data[0], y=training_data[1],
-            epochs=self.max_nepochs, batch_size=self.batch_size,
-            validation_data=(validation_data[0], validation_data[1]),
-            callbacks=[EarlyStop, _MyLogger()], shuffle=True, verbose=0)
-        print('Training is finished.')
+        if self.verbose:
+            # Training the model
+            print('\nTraining of the propensity score neural network:')
+            history_ps = model.fit(
+                x=training_data[0], y=training_data[1],
+                epochs=self.max_nepochs, batch_size=self.batch_size,
+                validation_data=(validation_data[0], validation_data[1]),
+                callbacks=[EarlyStop, _MyLogger()], shuffle=True, verbose=0)
+            print('Training is finished.')
+        else:
+            history_ps = model.fit(
+                x=training_data[0], y=training_data[1],
+                epochs=self.max_nepochs, batch_size=self.batch_size,
+                validation_data=(validation_data[0], validation_data[1]),
+                callbacks=[EarlyStop], shuffle=True, verbose=0)
 
         history_ps_dict = history_ps.history
         return model, history_ps_dict
@@ -507,24 +526,25 @@ def _influence_functions(mu0_pred, tau_pred, Y, T,
 
     Parameters
     ----------
-        mu0_pred: ndarray
-            Estimated target value given x in case of no treatment.
-        tau_pred: ndarray
-            Estimated conditional average treatment effect.
-        Y: ndarray
-            Target value array.
-        T: ndarray
-            Treatment array.
-        prob_t_pred: ndarray
-            Estimated propensity scores.
-        estimate_ps: bool
-            Should the propensity scores be estimated or not.
+    mu0_pred: ndarray
+        Estimated target value given x in case of no treatment.
+    tau_pred: ndarray
+        Estimated conditional average treatment effect.
+    Y: ndarray
+        Target value array.
+    T: ndarray
+        Treatment array.
+    prob_t_pred: ndarray
+        Estimated propensity scores.
+    estimate_ps: bool
+        Should the propensity scores be estimated or not.
+
     Returns
     -------
-        psi_0: ndarray
-            Influence function for given x in case of no treatment.
-        psi_1: ndarray
-            Influence function for given x in case of treatment.
+    psi_0: ndarray
+        Influence function for given x in case of no treatment.
+    psi_1: ndarray
+        Influence function for given x in case of treatment.
     '''
     T = np.array(T).reshape(-1, 1)
     Y = np.array(Y).reshape(-1, 1)
@@ -548,9 +568,9 @@ def causal_net_estimate(training_data, validation_data, test_data,
                         batch_size=None, alpha=0., r_par=0., optimizer='Adam',
                         learning_rate=0.0009, max_epochs_without_change=30,
                         max_nepochs=5000, seed=None, estimate_ps=False,
-                        hidden_layer_sizes_t=None, dropout_rates_t=None,
-                        batch_size_t=None, alpha_t=0., r_par_t=0.,
-                        optimizer_t='Adam', learning_rate_t=0.0009,
+                        verbose=True, hidden_layer_sizes_t=None,
+                        dropout_rates_t=None, batch_size_t=None, alpha_t=0.,
+                        r_par_t=0., optimizer_t='Adam', learning_rate_t=0.0009,
                         max_epochs_without_change_t=30, max_nepochs_t=5000,
                         seed_t=None):
     '''
@@ -620,6 +640,10 @@ def causal_net_estimate(training_data, validation_data, test_data,
         treatment is randomized then this variable should be set to
         False. In not randomized treatment case, it should be set to
         True. Default value is False.
+    verbose: bool, optional
+        Should the model summary and losses during training be printed.
+        If it is set to False, the printing behavior is suppressed.
+        Default value is True.
     hidden_layer_sizes_t: list of ints or None, optional
         `hidden_layer_sizes_t` is a list that defines a size and width
         of the neural network that estimates propensity scores. Length
@@ -693,7 +717,7 @@ def causal_net_estimate(training_data, validation_data, test_data,
     input_checker = InputChecker(
         training_data, validation_data, test_data, hidden_layer_sizes,
         dropout_rates, batch_size, alpha, r_par, optimizer, learning_rate,
-        max_epochs_without_change, max_nepochs, seed, estimate_ps,
+        max_epochs_without_change, max_nepochs, seed, estimate_ps, verbose,
         hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t, r_par_t,
         optimizer_t, learning_rate_t, max_epochs_without_change_t,
         max_nepochs_t, seed_t)
@@ -707,7 +731,7 @@ def causal_net_estimate(training_data, validation_data, test_data,
 
     coeff_net = CoeffNet(hidden_layer_sizes, dropout_rates, batch_size,
                          alpha, r_par, optimizer, learning_rate,
-                         max_epochs_without_change, max_nepochs, seed)
+                         max_epochs_without_change, max_nepochs, seed, verbose)
 
     model_coeff_net, history_dict = coeff_net.training_NN(
         training_data, validation_data)
@@ -723,7 +747,7 @@ def causal_net_estimate(training_data, validation_data, test_data,
         ps_net = PropensityScoreNet(
             hidden_layer_sizes_t, dropout_rates_t, batch_size_t, alpha_t,
             r_par_t, optimizer_t, learning_rate_t,
-            max_epochs_without_change_t, max_nepochs_t, seed_t)
+            max_epochs_without_change_t, max_nepochs_t, seed_t, verbose)
 
         model_ps_net, history_ps_dict = ps_net.training_NN(
             training_data[0:2], validation_data[0:2])
