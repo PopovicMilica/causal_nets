@@ -25,7 +25,7 @@ def inp_check(request):
 
     # Creating training and validation dataset
     X_train, X_valid, T_train, T_valid, Y_train, Y_valid = train_test_split(
-        X, T, Y, test_size=0.2, random_state=88)
+        X, T, Y, test_size=0.2, random_state=42)
 
     # Create a valid instance of InputChecker class
     inp_check = InputChecker(
@@ -33,10 +33,10 @@ def inp_check(request):
         [X, T, Y], [30, 20, 15, 10, 5], dropout_rates=None, batch_size=None,
         alpha=0., r_par=0., optimizer='Adam', learning_rate=0.0009,
         max_epochs_without_change=30, max_nepochs=5000, seed=None,
-        estimate_ps=False, hidden_layer_sizes_t=None, dropout_rates_t=None,
-        batch_size_t=None, alpha_t=0., r_par_t=0., optimizer_t='Adam',
-        learning_rate_t=0.0009, max_epochs_without_change_t=30,
-        max_nepochs_t=5000, seed_t=None)
+        estimate_ps=False, verbose=True, hidden_layer_sizes_t=None,
+        dropout_rates_t=None, batch_size_t=None, alpha_t=0., r_par_t=0.,
+        optimizer_t='Adam', learning_rate_t=0.0009,
+        max_epochs_without_change_t=30, max_nepochs_t=5000, seed_t=None)
 
     # Add `inp_check` attribute to the class under test
     if request.cls is not None:
@@ -274,17 +274,19 @@ class TestInputChecker():
                               error, message, seed)
 
     @pytest.mark.parametrize(
-        'error, message, estimate_ps',
+        'error, message, bool_par, par_name',
         [
-            (TypeError, 'estimate_ps must be provided as a boolean', 'False'),
-            (TypeError, 'estimate_ps must be provided as a boolean', None)
+            (TypeError, 'estimate_ps parameter must be provided as a boolean',
+             'False', 'estimate_ps'),
+            (TypeError, 'verbose parameter must be provided as a boolean',
+             None, 'verbose')
         ])
-    def test_is_estimate_ps_valid(self, error, message, estimate_ps):
+    def test_is_par_boolean(self, error, message, bool_par, par_name):
         '''Checks if appropriate type of error and error message are
-        being raised when invalid input for estimate_ps parameter is
-        being provided.'''
-        assert_message_raised(self.inp_check._is_estimate_ps_valid,
-                              error, message, estimate_ps)
+        being raised when invalid input for boolean parameter, such as
+        estimate_ps and verbose in our code, is being provided.'''
+        assert_message_raised(self.inp_check._is_par_boolean, error,
+                              message, bool_par, par_name)
 
     def test_no_error_is_being_raised1(self):
         '''Checks that no error is raised when valid inputs are provided'''
