@@ -19,7 +19,7 @@ class InputChecker():
     def __init__(self, training_data, validation_data, test_data,
                  hidden_layer_sizes, dropout_rates, batch_size, alpha, r_par,
                  optimizer, learning_rate, max_epochs_without_change,
-                 max_nepochs, seed, estimate_ps, hidden_layer_sizes_t,
+                 max_nepochs, seed, estimate_ps, verbose, hidden_layer_sizes_t,
                  dropout_rates_t, batch_size_t, alpha_t, r_par_t, optimizer_t,
                  learning_rate_t, max_epochs_without_change_t, max_nepochs_t,
                  seed_t):
@@ -38,6 +38,7 @@ class InputChecker():
         self.max_nepochs = max_nepochs
         self.seed = seed
         self.estimate_ps = estimate_ps
+        self.verbose = verbose
         self.hidden_layer_sizes_t = hidden_layer_sizes_t
         self.dropout_rates_t = dropout_rates_t
         self.batch_size_t = batch_size_t
@@ -193,10 +194,11 @@ class InputChecker():
             if seed <= 0:
                 raise ValueError('Seed must be a positive integer')
 
-    def _is_estimate_ps_valid(self, estimate_ps):
-        '''Check if the value provided for estimate_ps is valid.'''
-        if not isinstance(estimate_ps, bool):
-            raise TypeError('estimate_ps must be provided as a boolean')
+    def _is_par_boolean(self, bool_par, par_name):
+        '''Check if the parameter is boolean.'''
+        if not isinstance(bool_par, bool):
+            raise TypeError(
+                par_name + ' parameter must be provided as a boolean')
 
     def check_all_parameters(self):
         '''Checks the validity of all parameters provided to
@@ -225,8 +227,9 @@ class InputChecker():
         self._is_max_epochs_without_change_valid(self.max_epochs_without_change)
         self._is_seed_par_valid(self.seed)
 
-        # Check the validity of estimate_ps:
-        self._is_estimate_ps_valid(self.estimate_ps)
+        # Check the validity of estimate_ps and verbose parameter:
+        self._is_par_boolean(self.estimate_ps, 'estimate_ps')
+        self._is_par_boolean(self.verbose, 'verbose')        
 
         # Check the validity of inputs for the second neural network:
         if self.estimate_ps:
