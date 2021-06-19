@@ -26,6 +26,7 @@ The below code is a short example showcasing the usage of causal_nets software.
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from scipy.stats import norm
 from causal_nets import causal_net_estimate
 
 
@@ -35,7 +36,7 @@ np.random.seed(3)
 # Generating the fake data
 N = 10000
 X = np.random.uniform(low=0, high=1, size=[N, 10])
-mu0_real = 0.012*X[:, 3] - 0.75*X[:, 5]*X[:, 7] - 0.9*X[:, 4] - np.mean(X, axis=1)
+mu0_real = 1.5 + 0.012*X[:, 3] - 0.75*X[:, 5]*X[:, 7] - 0.9*X[:, 4] - np.mean(X, axis=1)
 tau_real = X[:, 2] + 0.04*X[:, 9] - 0.35*np.log(X[:, 3])
 prob_of_T = 0.5
 T = np.random.binomial(size=N, n=1, p=prob_of_T)
@@ -48,17 +49,17 @@ X_train, X_valid, T_train, T_valid, Y_train, Y_valid = train_test_split(
 
 # Getting causal estimates
 tau_pred, mu0_pred, prob_t_pred, psi_0, psi_1, history, history_ps = causal_net_estimate(
-    [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], [X, T, Y], [30, 20, 15, 10, 5],
+    [X_train, T_train, Y_train], [X_valid, T_valid, Y_valid], [X, T, Y], [60, 30],
     dropout_rates=None, batch_size=None, alpha=0., r_par=0., optimizer='Adam', learning_rate=0.0009,
     max_epochs_without_change=30, max_nepochs=10000, seed=None, estimate_ps=False, verbose=True)
 
-# Plotting estimated coefficient vs true coefficients    
+# Plotting estimated coefficient vs true coefficients
 plt.figure(figsize=(10, 5))
 plt.clf()
 
 plt.subplot(1, 2, 1)
-bins = np.linspace(min(min(tau_pred),min(tau_real)),
-                    max(max(tau_pred),max(tau_real)), 15)
+bins = np.linspace(min(float(min(tau_pred)), float(min(tau_real))),
+                   max(float(max(tau_pred)), float(max(tau_real))), 15)
 plt.hist(tau_pred, alpha=0.6, label=r'$\tau~_{pred}$',
          density=True, bins=bins)
 plt.hist(tau_real, label=r'$\tau~_{ real}$', histtype=u'step',
@@ -69,11 +70,11 @@ plt.xlabel(r'$\tau$', fontsize=14)
 plt.ylabel('Density')
 
 plt.subplot(1, 2, 2)
-bins = np.linspace(min(min(mu0_pred),min(mu0_real)),
-                    max(max(mu0_pred),max(mu0_real)), 15)
+bins = np.linspace(min(float(min(mu0_pred)), float(min(mu0_real))),
+                   max(float(max(mu0_pred)), float(max(mu0_real))), 15)
 plt.hist(mu0_pred, alpha=0.7, label=r'$\mu_{0~pred}$',
          density=True, bins=bins)
-plt.hist(mu0_real,label=r'$\mu_{0~real}$', histtype=u'step',
+plt.hist(mu0_real, label=r'$\mu_{0~real}$', histtype=u'step',
          density=True, linewidth=2.5, bins=bins)
 plt.legend(loc='upper right')
 plt.title(r'$\mu_0(x)$')
@@ -82,6 +83,13 @@ plt.ylabel('Density')
 
 plt.tight_layout()
 plt.show()
+
+# Calculate the average treatment effect
+ate = np.mean(psi_1-psi_0)
+
+# Calculate the 95% confidence interval for average treatment effect
+CI_lowerbound = ate - norm.ppf(0.975)*np.std(psi_1-psi_0)/np.sqrt(len(psi_0))
+CI_upperbound = ate + norm.ppf(0.975)*np.std(psi_1-psi_0)/np.sqrt(len(psi_0))
 ```
 To run the same example directly in R, additional R packages need to be installed: reticulate, repr and gensvm. Then run the code below: 
 ```R
@@ -95,7 +103,7 @@ set.seed(3)
 N <- 10000
 d <- 10
 X <- matrix(runif(N * d), N, d)
-mu0_real <- 0.012*X[, 4] - 0.75*X[, 6]*X[ ,8] - 0.9*X[, 5] - rowMeans(X)
+mu0_real <- 1.5 + 0.012*X[, 4] - 0.75*X[, 6]*X[ ,8] - 0.9*X[, 5] - rowMeans(X)
 tau_real <- X[, 3] + 0.04*X[, 10] - 0.35*log(X[, 4]) 
 prob_of_T <- 0.5
 T <- rbinom(N, 1, prob_of_T)
@@ -105,28 +113,28 @@ Y <- mu0_real + tau_real*T + normal_errors
 split = gensvm.train.test.split(X, train.size=0.8, shuffle=TRUE,
                                 random.state=42, return.idx=TRUE)
 # Splitting the data
-X_train = X[split$idx.train,]
-Y_train = Y[split$idx.train]
-T_train = T[split$idx.train]
-X_valid = X[split$idx.test,]
-Y_valid = Y[split$idx.test]
-T_valid = T[split$idx.test]
+X_train <- X[split$idx.train,]
+Y_train <- Y[split$idx.train]
+T_train <- T[split$idx.train]
+X_valid <- X[split$idx.test,]
+Y_valid <- Y[split$idx.test]
+T_valid <- T[split$idx.test]
 
 # Converting arrays into ndarrays which are recognized by Python
-X_train = np$array(X_train)
-T_train = np$array(T_train)
-Y_train = np$array(Y_train)
-X_valid = np$array(X_valid)
-T_valid = np$array(T_valid)
-Y_valid = np$array(Y_valid)
-X = np$array(X)
-T = np$array(T)
-Y = np$array(Y)
+X_train <- np$array(X_train)
+T_train <- np$array(T_train)
+Y_train <- np$array(Y_train)
+X_valid <- np$array(X_valid)
+T_valid <- np$array(T_valid)
+Y_valid <- np$array(Y_valid)
+X <- np$array(X)
+T <- np$array(T)
+Y <- np$array(Y)
 
 # Getting causal estimates 
-coeffs = causalNets$causal_net_estimate(
+coeffs <- causalNets$causal_net_estimate(
     list(X_train, T_train, Y_train), list(X_valid, T_valid, Y_valid),
-    list(X, T, Y),  list(30L, 20L, 15L, 10L, 5L), dropout_rates=NULL, batch_size=NULL,
+    list(X, T, Y),  list(60L, 30L), dropout_rates=NULL, batch_size=NULL,
     alpha=0., r_par=0., optimizer='Adam', learning_rate=0.0009, max_epochs_without_change=30L,
     max_nepochs=10000L, seed=NULL, estimate_ps=FALSE, verbose=TRUE)
 
@@ -159,6 +167,15 @@ hist(mu0_pred, main=expression(mu[0]*"(x)"),
 hist(mu0_real, col=c2, add=TRUE, freq=FALSE, border=F, breaks=breaks)
 legend("topright", legend=c(expression(mu[0][' pred']), expression(mu[0][' real'])), 
        fill=c(c1, c2), box.lty=0, cex=0.8, border=F, x.intersp=0.5)
+
+# Calculate the average treatment effect
+psi_0 <- as.vector(coeffs[[4]])    # influence function for t=0
+psi_1 <- as.vector(coeffs[[5]])    # influence function for t=1
+ate <- mean(psi_1-psi_0)
+
+# Calculate the 95% confidence interval for average treatment effect
+CI_lowerbound <- ate - qnorm(0.975)*sd(psi_1-psi_0)/sqrt(length(psi_0))
+CI_upperbound <- ate + qnorm(0.975)*sd(psi_1-psi_0)/sqrt(length(psi_0))
 ```
 
 ### Explanation of the parameters of the main function causal_net_estimate()
